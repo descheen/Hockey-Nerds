@@ -7,8 +7,8 @@
  *   Opslaan gaat altijd rechtstreeks naar de server, nooit uit een cache.
  * VERSIE wordt gezet door pwa/build.cjs.
  */
-var VERSIE = '5a6ba26641';
-var SHELL_CACHE = 'hn-shell-v3-' + VERSIE; // v3: lettertype en nieuwe uitstraling
+var VERSIE = '7e181f4388';
+var SHELL_CACHE = 'hn-shell-v4-' + VERSIE; // v4: Inter en verfijnde uitstraling
 var API_CACHE = 'hn-api';
 var SHELL = [
   './',
@@ -21,7 +21,8 @@ var SHELL = [
   './icons/favicon.svg',
   './fonts/barlow-condensed-latin-600-normal.woff2',
   './fonts/barlow-condensed-latin-700-normal.woff2',
-  './fonts/barlow-condensed-latin-800-normal.woff2'
+  './fonts/barlow-condensed-latin-800-normal.woff2',
+  './fonts/inter-latin-wght-normal.woff2'
 ];
 var LEES = { getPlayers: true, getState: true, login: true };
 
