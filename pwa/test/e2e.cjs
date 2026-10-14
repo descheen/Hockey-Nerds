@@ -60,6 +60,23 @@ async function toestel(browser, naam, device, metOffline) {
   const beweegt = await page.evaluate(() => { var sc = scoreAll(), lr = laatsteRonde(sc); return !!lr && Object.keys(lr.plekVoor).length === S.players.length; });
   check(beweegt, 'stand van vóór de laatste speeldag berekend (voor de pijltjes)');
   check(await page.evaluate(() => document.fonts.check('800 20px "Barlow Condensed"')), 'scorebordletter (Barlow Condensed) geladen');
+  const grafiek = await page.evaluate(() => {
+    var d = verloop(), laatst = d[d.length - 1];
+    var klopt = S.players.every(function (p) { return laatst.stand[p] === scoreAll()[p].hk.wvdw + scoreAll()[p].pk.wvdw; });
+    return { lijnen: document.querySelectorAll('.verloop polyline').length, dagen: d.length, klopt: klopt };
+  });
+  check(grafiek.lijnen === 4 && grafiek.dagen >= 2 && grafiek.klopt, `verloopgrafiek: een lijn per speler over ${grafiek.dagen} speeldagen`);
+  const tabel = await page.evaluate(() => {
+    tab = 'live'; compKeuze = 'hk'; render();
+    var r = document.querySelectorAll('.standtabel .strij:not(.kop)');
+    var uit = { rijen: r.length, zone: document.querySelectorAll('.standtabel .strij.zone').length,
+      pt: r[0] && r[0].querySelector('.pt').textContent, selectsZichtbaar: [...document.querySelectorAll('select[data-a="lstanding"]')].filter((s) => !s.closest('details') || s.closest('details').open).length };
+    tab = 'info'; render();
+    uit.meerBlokken = document.querySelectorAll('.regels > details.blok').length;
+    tab = 'stand'; render(); return uit;
+  });
+  check(tabel.rijen === 12 && tabel.zone === 4 && /^\d+$/.test(tabel.pt) && tabel.selectsZichtbaar === 0, 'competitie: standentabel met punten en play-offzone, aanpassen ingeklapt');
+  check(tabel.meerBlokken >= 6, `meer: beheer in ${tabel.meerBlokken} inklapbare blokken`);
 
   // 3. elk tabblad: renderen, geen horizontale scroll van de pagina
   const tabs = await page.$$eval('#nav button', (bs) => bs.map((b) => b.dataset.tab));
