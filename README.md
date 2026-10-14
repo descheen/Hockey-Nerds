@@ -105,6 +105,27 @@ Commit `docs/` en push. Het script zet ook een nieuwe cacheversie in `docs/sw.js
 de nieuwe versie ophalen. Wie de app op dat moment open heeft (ook op de achtergrond), ziet bovenaan
 de balk **"Nieuwe versie klaar · Verversen"**. Verversen wacht tot alles is opgeslagen. Wijzig je `Code.gs` of `doPost`, publiceer dan opnieuw zoals in stap 2.
 
+### Na een wijziging in Code.gs
+
+`Code.gs` draait bij Google, dus een nieuwe versie moet je daar zelf neerzetten:
+
+1. Open de nieuwste `Code.gs` op GitHub, klik op **Raw**, selecteer alles (**Ctrl+A**) en kopieer (**Ctrl+C**).
+2. Open je sheet en kies **Extensies > Apps Script**. Open het bestand **Code.gs**, selecteer alles en plak eroverheen. Klik op **Opslaan**.
+3. Kies **Implementeren > Implementaties beheren > potlood (Bewerken)**, zet **Versie** op **Nieuwe versie** en klik op **Implementeren**. De URL blijft gelijk.
+4. Controleer het in de app: bij **Meer > Info** staat onderaan het versienummer van `Code.gs`.
+
+### Uitslagen en standen automatisch ophalen
+
+Als de beheerder **Automatisch bijwerken** aanzet (bij Meer > Info en beheer), doet de server dit:
+- **Uitslagen:** elk uur, vanaf 2,5 uur na de aftrap van een gekozen wedstrijd, tot de uitslag er staat.
+- **Ranglijsten:** elke ochtend rond 9 uur.
+
+Bronnen, de stevigste eerst:
+- **hockeystanden.nl:** de ranglijst uit de gestructureerde data in de pagina (schema.org), anders uit de tabel. Uitslagen alleen van wedstrijden die echt afgelopen zijn, nooit een tussenstand.
+- **NOS Teletekst 630:** reserve voor de Hoofdklasse heren (uitslagen van het weekend en de stand).
+
+Lukt het niet, dan ziet de beheerder dat in de app: een taak op het homescherm en een melding bij Competitie. Daarnaast controleert GitHub elke ochtend of het ophalen nog werkt (`.github/workflows/controle-bronnen.yml`). Faalt die controle, dan mailt GitHub de eigenaar van de repo. Dan is een site waarschijnlijk omgebouwd.
+
 ---
 
 ## Testchecklist

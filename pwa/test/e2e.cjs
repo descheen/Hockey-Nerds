@@ -143,6 +143,19 @@ async function toestel(browser, naam, device, metOffline) {
   }));
   check(ververst, 'omlaag trekken bovenaan de pagina ververst');
 
+  // 3c3. als het automatisch ophalen misgaat, ziet de beheerder dat
+  const foutZichtbaar = await page.evaluate(() => {
+    const oud = [S.autoAan, S.autoFout];
+    S.autoAan = true; S.autoFout = 'maandag 12 oktober: ranglijst Promotieklasse niet herkend';
+    tab = 'live'; render();
+    const kaart = !!document.querySelector('.foutkaart');
+    tab = 'stand'; render();
+    const taak = [...document.querySelectorAll('button.taak')].some((b) => /ophalen lukt niet/.test(b.textContent));
+    S.autoAan = oud[0]; S.autoFout = oud[1]; render();
+    return kaart && taak;
+  });
+  check(foutZichtbaar, 'mislukt automatisch ophalen: melding bij Competitie en een taak op het homescherm');
+
   // 3d. status: offline en weer online
   await page.evaluate(() => window.dispatchEvent(new Event('offline')));
   check(await page.textContent('#status') === 'offline', 'status toont "offline" zonder netwerk');
