@@ -53,6 +53,75 @@ async function toestel(browser, naam, device, metOffline) {
     await page.screenshot({ path: path.join(SHOTS, `${naam}-tab-${t}.png`), fullPage: false });
   }
 
+  // 3b. mobiel ontwerp: opstartscherm weg, onderbalk, tikgebieden, geen tabellen, contrast
+  check(await page.evaluate(() => document.documentElement.classList.contains('klaar')), 'opstartscherm verdwijnt na het laden');
+  const balk = await page.$$eval('#nav button', (bs) => bs.map((b) => {
+    const r = b.getBoundingClientRect(), lbl = [...b.querySelectorAll('span')].find((x) => x.offsetWidth);
+    return { tab: b.dataset.tab, h: r.height, w: r.width, onder: innerHeight - r.bottom, past: !!lbl && lbl.scrollWidth <= lbl.clientWidth + 1, tekst: lbl && lbl.textContent };
+  }));
+  check(balk.length === 5 && balk.map((b) => b.tab).join() === 'stand,wvdw,pred,live,info', 'onderbalk: Stand, Wedstrijd, Voorspellingen, Competitie, Meer');
+  check(balk.every((b) => b.h >= 44 && b.w >= 44), 'onderbalk: elk vak minstens 44×44');
+  check(balk.every((b) => b.past), 'onderbalk: alle labels passen (' + balk.map((b) => b.tekst).join(', ') + ')');
+  check(balk.every((b) => b.onder >= 0 && b.onder < 40), 'onderbalk staat onderin het scherm');
+  for (const t of ['stand', 'wvdw', 'pred', 'live', 'info', 'result']) {
+    const te = await page.evaluate((t) => {
+      tab = t; render();
+      document.querySelectorAll('#view details').forEach((d) => { d.open = true; });
+      const klein = [...document.querySelectorAll('#view button,#view select,#view input:not([type=checkbox]),#view textarea,#view summary,#view .pts.tik')]
+        .filter((el) => el.offsetParent !== null)
+        .map((el) => { const r = el.getBoundingClientRect(); return { el: el.tagName + '.' + el.className + ' ' + (el.textContent || '').trim().slice(0, 20), h: r.height }; })
+        .filter((x) => x.h < 43.5);
+      return { klein, tabellen: document.querySelectorAll('#view table').length, breed: document.documentElement.scrollWidth > innerWidth + 1 };
+    }, t);
+    check(!te.klein.length, `scherm "${t}": alle tikgebieden minstens 44px` + (te.klein.length ? ': ' + JSON.stringify(te.klein.slice(0, 3)) : ''));
+    check(!te.tabellen && !te.breed, `scherm "${t}": geen tabellen, niets breder dan het scherm`);
+  }
+  const contrast = await page.evaluate(() => {
+    const css = getComputedStyle(document.documentElement), v = (n) => css.getPropertyValue(n).trim();
+    const lum = (hex) => { const c = hex.replace('#', '').match(/../g).map((x) => parseInt(x, 16) / 255).map((x) => x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+    const r = (a, b) => { const x = lum(v(a)), y = lum(v(b)); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    const paren = [['--txt', '--surface-2'], ['--dim', '--surface-2'], ['--faint', '--bg'], ['--faint', '--surface'], ['--acc-txt', '--surface'], ['--on-acc', '--acc'], ['--ok', '--surface-2'], ['--bad', '--surface']];
+    return paren.map(([a, b]) => [a + ' op ' + b, Math.round(r(a, b) * 10) / 10]);
+  });
+  check(contrast.every((c) => c[1] >= 4.5), 'contrast minstens 4.5:1 (' + contrast.map((c) => c[0] + ' ' + c[1]).join(', ') + ')');
+
+  // 3c. wedstrijd van de week: één ronde per scherm, zwiepen en pijlen, snelle score-invoer
+  await page.click('#nav button[data-tab="wvdw"]');
+  const r0 = await page.evaluate(() => huidigeVenster());
+  const zwiep = (dx) => page.evaluate((dx) => {
+    const el = document.querySelector('.wedstrijd .duel');
+    const t = (x) => new Touch({ identifier: 1, target: el, clientX: x, clientY: 300 });
+    el.dispatchEvent(new TouchEvent('touchstart', { touches: [t(200)], changedTouches: [t(200)], bubbles: true }));
+    el.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t(200 + dx)], bubbles: true }));
+  }, dx);
+  check((await page.$$('.wedstrijd')).length === 2, 'één speelronde per scherm (twee wedstrijdkaarten)');
+  await zwiep(-150);
+  check(await page.evaluate(() => huidigeVenster()) === r0 + 1, 'naar links zwiepen: volgende ronde');
+  await zwiep(150);
+  check(await page.evaluate(() => huidigeVenster()) === r0, 'naar rechts zwiepen: terug');
+  await page.click('.pager [data-ronde="' + (r0 - 1) + '"]');
+  check(await page.evaluate(() => huidigeVenster()) === r0 - 1, 'pijl terug werkt');
+  await page.click('.pager [data-ronde="nu"]');
+  check(await page.evaluate(() => huidigeVenster()) === r0, '"terug naar nu" werkt');
+  const groot = await page.$eval('.mijnvak .sc.groot input', (el) => el.getBoundingClientRect().height);
+  check(groot >= 56, `score-invoer is groot (${Math.round(groot)}px)`);
+  await page.click('.mijnvak .sc.groot input[data-half="h"]');
+  await page.keyboard.type('3');
+  check(await page.evaluate(() => document.activeElement.dataset.half === 'a'), 'na één cijfer springt de cursor naar het uitvak');
+  await page.keyboard.type('1');
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => document.getElementById('status').textContent === 'opgeslagen', null, { timeout: 8000 });
+  const mijnScore = await page.evaluate((r) => new Promise((ok) =>
+    google.script.run.withSuccessHandler((x) => ok(x.state.comps.hk.preds.Rein.wvdw[r])).getState('Rein', '1234')), r0);
+  check(mijnScore === '3-1', 'snelle score-invoer opgeslagen op de server (' + mijnScore + ')');
+
+  // 3d. status: offline en weer online
+  await page.evaluate(() => window.dispatchEvent(new Event('offline')));
+  check(await page.textContent('#status') === 'offline', 'status toont "offline" zonder netwerk');
+  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  check(await page.textContent('#status') !== 'offline', 'status herstelt als het netwerk terug is');
+  await page.click('#nav button[data-tab="stand"]');
+
   // 4. opslaan (applyPatches) en terugkrijgen van de server
   // (de eindstand-voorspellingen zitten op slot zodra de competitie loopt, dus een uitslag als beheerder)
   const waarde = { iphone: '3-1', android: '2-2', 'iphone-se': '4-0' }[naam];
@@ -120,11 +189,33 @@ async function toestel(browser, naam, device, metOffline) {
   check(!(await page.$('#hn-update')), 'na verversen: nieuwe versie geladen, balk weg');
 
   // 10. uitloggen wist de offline-kopie
+  await page.click('#nav button[data-tab="info"]');
   await page.click('#btnLogout');
   await page.waitForSelector('#pick button');
   // Na het herladen haalt het inlogscherm getPlayers op (dat mag), maar jouw login/stand is weg.
   const bewaard = await page.evaluate(async () => (await (await caches.open('hn-api')).keys()).length);
   check(bewaard <= 1, `uitloggen wist jouw offline-kopie (nog ${bewaard} item: de spelerslijst)`);
+
+  // 11. als gewone speler: alles alleen-lezen, zelfde regels voor tikgebieden en breedte
+  await page.click('#pick button[data-p="Tijn"]');
+  await page.fill('#pin', '1234');
+  await page.click('#go');
+  await page.waitForSelector('#nav button');
+  check(await page.evaluate(() => ME === 'Tijn' && ADMIN === false), 'inloggen als gewone speler (Tijn)');
+  for (const t of ['stand', 'wvdw', 'pred', 'live', 'info', 'result']) {
+    const te = await page.evaluate((t) => {
+      tab = t; render();
+      document.querySelectorAll('#view details').forEach((d) => { d.open = true; });
+      const klein = [...document.querySelectorAll('#view button,#view select,#view input:not([type=checkbox]),#view summary,#view .pts.tik')]
+        .filter((el) => el.offsetParent !== null && el.getBoundingClientRect().height < 43.5).length;
+      return { klein, beheer: document.querySelectorAll('#view [data-adm]').length, breed: document.documentElement.scrollWidth > innerWidth + 1 };
+    }, t);
+    check(!te.klein && !te.breed && !te.beheer, `speler, scherm "${t}": geen beheerknoppen, tikgebieden en breedte in orde`);
+  }
+  await page.screenshot({ path: path.join(SHOTS, `${naam}-speler.png`) });
+  await page.click('#nav button[data-tab="info"]');
+  await page.click('#btnLogout');
+  await page.waitForSelector('#pick button');
 
   check(consoleFouten.length === 0, 'geen JS-fouten in de console' + (consoleFouten.length ? ': ' + consoleFouten.join(' | ') : ''));
   await ctx.close();
