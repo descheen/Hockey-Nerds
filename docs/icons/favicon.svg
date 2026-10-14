@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Hockey NERDS: H wit, N oranje, groene bal. Alles binnen de maskable-veilige zone (cirkel r=205). -->
+  <rect width="512" height="512" fill="#0f1420"/>
+  <g transform="translate(256 256) scale(0.82) translate(-256 -256)">
+    <!-- H -->
+    <rect x="96"  y="150" width="40" height="212" rx="6" fill="#e8edf7"/>
+    <rect x="200" y="150" width="40" height="212" rx="6" fill="#e8edf7"/>
+    <rect x="96"  y="236" width="144" height="40" fill="#e8edf7"/>
+    <!-- N -->
+    <rect x="272" y="150" width="40" height="212" rx="6" fill="#ff7a1a"/>
+    <rect x="376" y="150" width="40" height="212" rx="6" fill="#ff7a1a"/>
+    <polygon points="272,150 318,150 416,362 370,362" fill="#ff7a1a"/>
+    <!-- bal -->
+    <circle cx="256" cy="414" r="20" fill="#38d39f"/>
+  </g>
+</svg>

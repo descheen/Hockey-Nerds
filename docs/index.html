@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<!-- ===== PWA: begin ===== -->
+<script>
+/* Apps Script exec-URL (Implementeren > Implementaties beheren > Web-app). */
+var HN_API = 'https://script.google.com/macros/s/AKfycbwxuYGREeXE6Ql5wg96HpbYVGQzs5JMGntZtpFeR4eLh4HuNxP7MhEor-kSE1CujKk/exec';
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Hockey NERDS</title>
+<meta name="description" content="Hockey NERDS: voorspellingen voor de Hoofdklasse en Promotieklasse.">
+<meta name="theme-color" content="#0f1420">
+<meta name="color-scheme" content="dark">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="NERDS">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<script>
+/*
+ * Fetch-shim: dezelfde API als google.script.run, maar via doPost.
+ *   google.script.run.withSuccessHandler(f).withFailureHandler(g).login(who, pin)
+ * Antwoord {ok:true,r} gaat naar de success handler, {ok:false,fout} en
+ * netwerkfouten naar de failure handler (met een Error), net als in Apps Script.
+ */
+(function () {
+  var FUNCTIES = ['login', 'getState', 'getPlayers', 'applyPatches', 'adminAction', 'haalVoorstellen', 'geefToestemming'];
+  var offlineGemeld = false;
+
+  function melding(m) { if (typeof toast === 'function') toast(m, true); }
+
+  function roep(fn, args, ok, fail, user) {
+    var p = /VUL-HIER/.test(HN_API)
+      ? Promise.reject(new Error('De exec-URL (HN_API) is nog niet ingevuld.'))
+      : fetch(HN_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ fn: fn, args: args }),
+          redirect: 'follow',
+          credentials: 'omit'
+        });
+    p.then(function (res) {
+      if (!res.ok) throw new Error('Server antwoordde met ' + res.status);
+      // De service worker zet deze header als hij offline een oud antwoord geeft.
+      if (res.headers.get('X-HN-Cache')) {
+        if (!offlineGemeld) { offlineGemeld = true; melding('Offline: je ziet de laatst bekende gegevens'); }
+      } else offlineGemeld = false;
+      return res.text();
+    }).then(function (tekst) {
+      var uit;
+      try { uit = JSON.parse(tekst); } catch (e) { throw new Error('Onverwacht antwoord van de server.'); }
+      if (!uit || uit.ok !== true) throw new Error((uit && uit.fout) || 'Onbekende fout.');
+      return uit.r;
+    }).then(function (r) {
+      if (ok) ok(r, user);
+    }, function (err) {
+      if (fail) fail(err, user);
+      else { console.error('[' + fn + ']', err); melding('Geen verbinding met de server'); }
+    });
+  }
+
+  function runner(ok, fail, user) {
+    var r = {
+      withSuccessHandler: function (f) { return runner(f, fail, user); },
+      withFailureHandler: function (f) { return runner(ok, f, user); },
+      withUserObject: function (u) { return runner(ok, fail, u); }
+    };
+    FUNCTIES.forEach(function (fn) {
+      r[fn] = function () { roep(fn, Array.prototype.slice.call(arguments), ok, fail, user); };
+    });
+    return r;
+  }
+
+  window.google = window.google || {};
+  google.script = google.script || {};
+  // Elke keer een verse runner, zodat handlers van de ene aanroep niet aan de volgende blijven hangen.
+  Object.defineProperty(google.script, 'run', { get: function () { return runner(null, null, undefined); } });
+})();
+</script>
+<style>
+/* PWA: telefoon, notch en home-indicator */
+html{background:var(--bg,#0f1420);-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{min-height:100vh;min-height:100dvh;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  -webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
+.toast{bottom:calc(20px + env(safe-area-inset-bottom));max-width:calc(100vw - 32px);text-align:center}
+/* iOS zoomt in op velden kleiner dan 16px en zoomt daarna niet terug */
+@media (pointer:coarse){input,select,textarea{font-size:16px}}
+#hn-update{position:fixed;left:50%;transform:translateX(-50%);white-space:nowrap;top:calc(10px + env(safe-area-inset-top));z-index:100;
+  display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px);padding:8px 8px 8px 16px;border-radius:24px;
+  background:var(--panel2,#1e2739);border:1px solid var(--acc,#ff7a1a);color:var(--txt,#e8edf7);font-size:14px;font-weight:600;
+  box-shadow:0 6px 24px rgba(0,0,0,.45)}
+#hn-update button{flex-shrink:0;background:var(--acc,#ff7a1a);color:#1a0d02;border:0;border-radius:18px;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer}
+</style>
+<!-- ===== PWA: eind ===== -->
+
+<style>
+:root{
+  --bg:#0f1420; --panel:#171e2e; --panel2:#1e2739; --line:#2a3550;
+  --txt:#e8edf7; --dim:#8b98b5; --acc:#ff7a1a; --acc2:#38d39f; --bad:#ff5470; --gold:#ffc94d;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+header{padding:16px 20px 0;max-width:1400px;margin:0 auto;display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap}
+h1{margin:0;font-size:22px;letter-spacing:-.02em}
+h1 span{color:var(--acc)}
+.sub{color:var(--dim);font-size:13px}
+main{max-width:1400px;margin:0 auto;padding:0 20px 60px}
+nav{display:flex;gap:6px;margin:18px 0 20px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+nav button{background:none;border:0;color:var(--dim);padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;border-radius:6px 6px 0 0}
+nav button:hover{color:var(--txt);background:var(--panel)}
+nav button.on{color:var(--acc);border-bottom-color:var(--acc)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+.card h2{margin:0 0 12px;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.card h3{margin:18px 0 8px;font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.tag{font-size:11px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--panel2);color:var(--dim);border:1px solid var(--line)}
+.tag.me{background:rgba(255,122,26,.16);color:var(--acc);border-color:var(--acc)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border:1px solid var(--line);padding:5px 7px;text-align:center;white-space:nowrap}
+th{background:var(--panel2);color:var(--dim);font-weight:600;font-size:12px;position:sticky;top:0;z-index:2}
+td.name,th.name{text-align:left;font-weight:600;background:var(--panel2);position:sticky;left:0;z-index:1}
+th.name{z-index:3}
+tr.me td.name{color:var(--acc)}
+tr.me td{background:rgba(255,122,26,.05)}
+.scroll{overflow:auto;max-height:72vh;border-radius:8px;border:1px solid var(--line)}
+.scroll table{border:0}
+input,select{background:var(--bg);border:1px solid var(--line);color:var(--txt);border-radius:6px;padding:5px 7px;font:inherit;font-size:13px;width:100%;min-width:0}
+input:focus,select:focus{outline:2px solid var(--acc);outline-offset:-1px;border-color:var(--acc)}
+input.actual{border-color:var(--acc2)}
+.ro{color:var(--dim);font-variant-numeric:tabular-nums}
+.locked{opacity:.55}
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--txt);padding:7px 13px;border-radius:8px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.btn:hover{border-color:var(--acc);color:var(--acc)}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#1a1005}
+.btn.pri:hover{opacity:.9;color:#1a1005}
+.btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.spacer{flex:1}
+.pts{font-weight:700;font-variant-numeric:tabular-nums}
+.p10{color:var(--gold)}.p7{color:var(--acc2)}.p5{color:#7fb4ff}.p2{color:var(--dim)}.p0{color:var(--bad)}
+.lead{display:grid;gap:8px}
+.lrow{display:grid;grid-template-columns:34px 1fr auto auto auto;gap:10px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.lrow.first{border-color:var(--acc);background:linear-gradient(90deg,rgba(255,122,26,.14),var(--panel2))}
+.lrow.mine{box-shadow:inset 3px 0 0 var(--acc2)}
+.pos{font-size:18px;font-weight:800;color:var(--dim);text-align:center}
+.lrow.first .pos{color:var(--acc)}
+.pname{font-size:16px;font-weight:700}
+.psub{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+.ptot{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.bars{height:6px;background:var(--bg);border-radius:4px;overflow:hidden;display:flex;margin-top:6px}
+.bars i{display:block;height:100%}
+.legend{font-size:12px;color:var(--dim);display:flex;gap:14px;flex-wrap:wrap;margin-top:8px}
+.legend b{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+.hint{color:var(--dim);font-size:12px;margin:6px 0 0}
+.warn{color:var(--bad);font-size:12px;font-weight:600}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}
+.kol>.card:last-child{margin-bottom:0}
+/* kale ranglijst op het standscherm */
+.rangwrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.rang{display:grid;gap:3px}
+.rangrij{display:grid;grid-template-columns:20px 1fr;gap:8px;align-items:center;font-size:13px;
+  background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:4px 8px}
+.rangrij .nr{color:var(--dim);font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.rangrij.kop{border-color:var(--acc)}
+.rangrij.kop span{color:var(--acc);font-weight:700}
+.kv{display:grid;grid-template-columns:1fr 120px;gap:8px;align-items:center;font-size:13px;margin-bottom:6px}
+.kv label{color:var(--dim)}
+.mini{font-size:11px;color:var(--dim)}
+.dup{outline:2px solid var(--bad)!important;outline-offset:-1px}
+.kiezer{font-size:11px;font-weight:700;color:var(--dim);margin-bottom:3px}
+.kiezer.ik{color:var(--acc2)}
+.kiezer.nu{color:var(--acc)}
+th.ronde-nu{background:rgba(255,122,26,.14);box-shadow:inset 0 2px 0 var(--acc)}
+.card.beurt{border-color:var(--line);background:linear-gradient(90deg,rgba(255,122,26,.07),var(--panel))}
+.card.ikbeurt{border-color:var(--acc);background:linear-gradient(90deg,rgba(255,122,26,.18),var(--panel))}
+.beurtvolgorde{display:grid;gap:6px;margin:8px 0}
+.beurtrij{display:grid;grid-template-columns:26px 1fr auto auto;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+.beurtrij b{font-size:14px}
+.beurtrij .btn{padding:3px 9px}
+/* eindstand-kaarten */
+.predkaart{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.predkaart.mijn{border-color:var(--acc);background:linear-gradient(180deg,rgba(255,122,26,.09),var(--panel2))}
+.predkop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.predkop .naam{font-size:17px;font-weight:800}
+.predkop .spacer{flex:1}
+.predpunten{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+.predrij{display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:center;margin-bottom:6px}
+.predrij .nr{font-size:13px;font-weight:800;color:var(--dim);text-align:right;font-variant-numeric:tabular-nums}
+.predrij.top .nr{color:var(--gold)}
+.predrij.fout select{outline:2px solid var(--bad);outline-offset:-1px}
+.predrij select,.predrij input{width:100%;padding:9px 10px;font-size:14px}
+.predrij .ro{display:block;padding:9px 10px;background:var(--bg);border:1px solid var(--line);border-radius:6px;font-size:14px}
+.predrij .ro.goed{color:var(--gold);font-weight:700;border-color:var(--gold)}
+.predbonus{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.predbonus .predrij{grid-template-columns:150px 1fr}
+.predbonus .nr{text-align:left;color:var(--dim);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+.predkolommen{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.verborgen{color:var(--dim);font-size:13px;padding:10px 0}
+details.ander{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:8px;background:var(--panel2)}
+details.ander summary{font-weight:700;color:var(--txt)}
+details.ander[open] summary{margin-bottom:10px}
+@media(max-width:640px){.predbonus .predrij{grid-template-columns:1fr;gap:4px}.predbonus .nr{text-align:left}}
+/* actiebalk */
+.klok{font-size:12px;font-weight:800;padding:4px 10px;border-radius:20px;background:var(--panel2);border:1px solid var(--line);color:var(--dim)}
+.klok.bijna{color:var(--acc);border-color:var(--acc);background:rgba(255,122,26,.12)}
+.taken{display:flex;flex-direction:column;gap:6px}
+.taken.klaar{color:var(--acc2);font-size:13px;font-weight:600}
+button.taak{display:block;width:100%;text-align:left;background:var(--bg);border:1px solid var(--acc);color:var(--txt);
+  padding:11px 14px;border-radius:10px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;position:relative}
+button.taak:after{content:'›';position:absolute;right:14px;color:var(--acc);font-size:18px;line-height:1}
+button.taak:hover{background:rgba(255,122,26,.12)}
+button.taak.let{border-color:#d93025;background:rgba(217,48,37,.10)}
+button.taak.let:after{color:#d93025}
+.beker{margin-left:6px;font-size:13px;letter-spacing:-2px}
+/* wedstrijd kiezen */
+.btn.mini{padding:4px 9px;font-size:11px}
+.wcel{width:126px;display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+.wlabel{white-space:normal;font-size:12px;font-weight:700;line-height:1.25;text-align:left}
+.wlabel.leeg{color:var(--dim);font-weight:400;font-style:italic}
+.wkiezer{background:var(--panel2);border:1px solid var(--acc);border-radius:12px;padding:14px;margin-top:10px}
+.wkop{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.wlijst{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:6px;margin-top:6px}
+button.wkeuze{text-align:left;background:var(--bg);border:1px solid var(--line);color:var(--txt);
+  padding:11px 13px;border-radius:9px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+button.wkeuze:hover{border-color:var(--acc);color:var(--acc)}
+button.wkeuze.aan{border-color:var(--acc);background:rgba(255,122,26,.16);color:var(--acc)}
+input.wveld{width:100%;max-width:340px;padding:11px 12px;font-size:15px;margin-top:4px}
+.wbeheer{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.wbeheer summary{color:var(--dim);font-size:12px;cursor:pointer}
+.wbeheer textarea{width:100%;background:var(--bg);color:var(--txt);border:1px solid var(--line);
+  border-radius:6px;padding:8px;font:inherit;font-size:13px;margin-top:6px}
+@media(max-width:640px){.wcel{width:100%}.wlijst{grid-template-columns:1fr}}
+/* snelle score-invoer: twee vakjes in plaats van een streepje typen */
+.sc{display:inline-flex;align-items:center;gap:2px;justify-content:center}
+.sc input{width:30px;padding:7px 2px;text-align:center;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.sc i{color:var(--dim);font-style:normal;font-weight:700}
+.sc input:focus{border-color:var(--acc);outline:none;background:rgba(255,122,26,.10)}
+.sc.uitslag input{border-color:var(--acc2)}
+@media(max-width:640px){.sc input{width:34px;padding:9px 2px;font-size:16px}}
+/* uitsplitsing */
+table.stat td,table.stat th{padding:7px 8px}
+table.stat td.getal{font-variant-numeric:tabular-nums;font-weight:700}
+table.stat td.top{color:var(--gold)}
+table.stat tr.me td{background:rgba(60,224,169,.07)}
+.staaf{height:5px;background:var(--bg);border-radius:3px;overflow:hidden;margin-top:4px}
+.staaf i{display:block;height:100%;background:var(--acc)}
+/* live projectie bonus */
+.proj{display:grid;gap:6px;margin-top:8px}
+.projrij{display:grid;grid-template-columns:130px 1fr auto;gap:10px;align-items:center;background:var(--panel2);
+  border:1px solid var(--line);border-radius:8px;padding:8px 11px;font-size:13px}
+.projrij .vraag{color:var(--dim);font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+.projrij .antw{font-weight:700}
+.projrij .antw small{display:block;font-weight:400;color:var(--dim);font-size:11px;text-transform:none;letter-spacing:0}
+.projrij.raak{border-color:var(--gold)}
+.projrij .wie{font-size:12px;color:var(--gold);text-align:right}
+.projrij .wie.niemand{color:var(--dim)}
+.projrij.leeg .antw{color:var(--dim);font-weight:400}
+@media(max-width:640px){.projrij{grid-template-columns:1fr;gap:3px}.projrij .wie{text-align:left}}
+/* wedstrijd van de week op een smal scherm */
+.rondekiezer{display:none;align-items:center;gap:8px;margin-bottom:10px}
+.rondekiezer b{font-variant-numeric:tabular-nums}
+@media(max-width:720px){.rondekiezer{display:flex}}
+.uitleg{background:var(--panel2);border:1px solid var(--acc);border-radius:10px;padding:10px 12px;margin-top:8px;font-size:13px}
+.uitleg b{color:var(--acc)}
+/* sluitmomenten per competitie */
+.klokrij{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel2);border:1px solid var(--line);
+  border-radius:10px;padding:9px 12px;margin-top:8px;font-size:13px}
+.klokrij.afwijkend{border-color:var(--bad)}
+.klokrij .kcomp{font-weight:700;min-width:120px}
+.klokrij .kdatum{color:var(--dim)}
+.klokrij .ksluit{width:100%;color:var(--dim);font-size:12px}
+.klokrij .kwaarschuw{width:100%;color:var(--bad);font-size:12px;font-weight:600}
+#status{font-size:12px;font-weight:600;padding:4px 10px;border-radius:20px;border:1px solid var(--line);color:var(--dim);background:var(--panel)}
+#status.busy{color:var(--acc);border-color:var(--acc)}
+#status.ok{color:var(--acc2);border-color:var(--acc2)}
+#status.err{color:var(--bad);border-color:var(--bad)}
+.login{max-width:400px;margin:12vh auto;text-align:center}
+.login h1{font-size:28px;margin-bottom:6px}
+.login .card{text-align:left}
+.pick{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:10px 0}
+.pick button{padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font:inherit;font-weight:700;cursor:pointer}
+.pick button.on{border-color:var(--acc);color:var(--acc);background:rgba(255,122,26,.12)}
+.pick .new{font-size:10px;display:block;color:var(--acc2);font-weight:600}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--acc2);color:#05271c;padding:10px 18px;border-radius:20px;font-weight:700;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:99}
+.toast.on{opacity:1}
+.toast.bad{background:var(--bad);color:#2d0410}
+@media(max-width:640px){.lrow{grid-template-columns:28px 1fr auto}.lrow .psub{display:none}}
+</style>
+</head>
+<body>
+<div id="app"><div class="login"><h1>Hockey <span>NERDS</span></h1><div class="sub">laden…</div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= state ================= */
+var S=null, ME=null, ADMIN=false, PIN=null, tab='stand';
+var queue=[], sending=false, dirty=false, pollTimer=null;
+
+function toast(m,bad){var t=document.getElementById('toast');t.textContent=m;t.className='toast on'+(bad?' bad':'');setTimeout(function(){t.className='toast';},bad?3000:1600);}
+function setStatus(txt,cls){var e=document.getElementById('status');if(e){e.textContent=txt;e.className=cls||'';}}
+var h=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
+
+/* ================= puntenlogica (spiegel van Code.gs) ================= */
+function parseScore(v){if(!v)return null;var m=String(v).trim().match(/^(\d+)\s*[-–:]\s*(\d+)$/);return m?[parseInt(m[1],10),parseInt(m[2],10)]:null;}
+function sign(a,b){return a>b?1:a<b?-1:0;}
+function matchPoints(pred,actual,pts){
+  var p=parseScore(pred),a=parseScore(actual);
+  if(!p||!a)return 0;
+  if(p[0]===a[0]&&p[1]===a[1])return pts.exact;
+  var outcome=sign(p[0],p[1])===sign(a[0],a[1]);
+  var oneScore=p[0]===a[0]||p[1]===a[1];
+  if(outcome&&oneScore)return pts.scoreWin;
+  if(outcome)return pts.win;
+  if(oneScore)return pts.score;
+  return 0;
+}
+function eq(a,b){return !!a&&!!b&&String(a).trim().toLowerCase()===String(b).trim().toLowerCase();}
+/* Spelersnamen vergelijken zoals een mens dat doet. Zie naamEq_ in Code.gs. */
+function plat(s){return String(s||'').toLowerCase()
+  .replace(/[àáâãäå]/g,'a').replace(/[èéêë]/g,'e').replace(/[ìíîï]/g,'i')
+  .replace(/[òóôõö]/g,'o').replace(/[ùúûü]/g,'u')
+  .replace(/[ç]/g,'c').replace(/[ñ]/g,'n').replace(/[ß]/g,'s')
+  .replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();}
+function afstand(a,b){var m=a.length,n=b.length,v=[],u=[],i,j;
+  if(!m||!n)return m+n;
+  for(j=0;j<=n;j++)v[j]=j;
+  for(i=1;i<=m;i++){u[0]=i;
+    for(j=1;j<=n;j++)u[j]=Math.min(v[j]+1,u[j-1]+1,v[j-1]+(a.charAt(i-1)===b.charAt(j-1)?0:1));
+    for(j=0;j<=n;j++)v[j]=u[j];}
+  return v[n];}
+function naamEq(a,b){var x=plat(a),y=plat(b);
+  if(!x||!y)return false;
+  if(x===y)return true;
+  var xd=x.split(' '),yd=y.split(' '),xa=xd[xd.length-1],ya=yd[yd.length-1];
+  if(xa.length<4||ya.length<4)return false;
+  var d=afstand(xa,ya),lang=Math.max(xa.length,ya.length);
+  if(d===0)return true;
+  if(d===1&&lang>=4)return true;
+  return d===2&&lang>=7;}
+function matchLabel(m){
+  if(m.home&&m.away)return m.home+' - '+m.away;
+  if(m.home||m.away)return (m.home||'?')+' - '+(m.away||'?');
+  return m.label||'';
+}
+function blankPred(){var w=[],s=[];for(var i=0;i<22;i++)w.push('');for(var j=0;j<12;j++)s.push('');
+  return {wvdw:w,standing:s,kampioen:'',winter:'',topscorer:'',minsteTegen:'',meestScorend:'',speler:''};}
+/* In de Promotieklasse is de koploper de kampioen, dus daar is het een toeslag. */
+function kampioenPt(comp,pts){return comp.ck==='pk'?pts.kampioenPk:pts.kampioen;}
+function scorePlayer(comp,player,pts){
+  var pr=comp.preds[player]||blankPred(), rs=comp.result, wvdw=0, perMatch=[];
+  comp.matches.forEach(function(m,i){var v=matchPoints(pr.wvdw[i],m.actual,pts);perMatch.push(v);wvdw+=v;});
+  var positie=0;
+  for(var i=0;i<12;i++) if(eq(pr.standing[i],rs.standing[i])) positie+=pts.positie;
+  var bd={
+    kampioen:eq(pr.kampioen,rs.kampioen)?kampioenPt(comp,pts):0,
+    winter:eq(pr.winter,rs.winter)?pts.winter:0,
+    topscorer:naamEq(pr.topscorer,rs.topscorer)?pts.topscorer:0,
+    minsteTegen:eq(pr.minsteTegen,rs.minsteTegen)?pts.minsteTegen:0,
+    meestScorend:eq(pr.meestScorend,rs.meestScorend)?pts.meestScorend:0,
+    speler:(comp.ck==='hk'&&naamEq(pr.speler,rs.speler))?pts.speler:0
+  };
+  var bonus=bd.kampioen+bd.winter+bd.topscorer+bd.minsteTegen+bd.meestScorend+bd.speler;
+  return {wvdw:wvdw,perMatch:perMatch,positie:positie,bonus:bonus,bd:bd,total:wvdw+positie+bonus};
+}
+function scoreAll(){
+  var out={};
+  S.players.forEach(function(p){
+    var hk=scorePlayer(S.comps.hk,p,S.pts), pk=scorePlayer(S.comps.pk,p,S.pts);
+    out[p]={hk:hk,pk:pk,total:hk.total+pk.total};
+  });
+  return out;
+}
+
+/* ================= statistiek ================= */
+/** Aantal exact goed voorspelde uitslagen, beide competities samen. */
+function perfecteScores(p){
+  var n=0;
+  ['hk','pk'].forEach(function(ck){
+    var c=S.comps[ck], pr=c.preds[p]||blankPred();
+    c.matches.forEach(function(m,i){
+      if(!parseScore(m.actual))return;
+      if(matchPoints(pr.wvdw[i],m.actual,S.pts)===S.pts.exact)n++;
+    });
+  });
+  return n;
+}
+/** Per gespeelde ronde de hoogste score; gelijkspel telt voor iedereen. */
+function rondeWinnaars(){
+  var telling={}, rondes=0;
+  S.players.forEach(function(p){telling[p]=0;});
+  for(var i=0;i<22;i++){
+    var iets=false, best=0, punten={};
+    S.players.forEach(function(p){
+      var t=0;
+      ['hk','pk'].forEach(function(ck){
+        var c=S.comps[ck], m=c.matches[i], pr=c.preds[p]||blankPred();
+        if(!parseScore(m.actual))return;
+        iets=true; t+=matchPoints(pr.wvdw[i],m.actual,S.pts);
+      });
+      punten[p]=t; if(t>best)best=t;
+    });
+    if(!iets)continue;
+    rondes++;
+    if(best<=0)continue;
+    S.players.forEach(function(p){if(punten[p]===best)telling[p]++;});
+  }
+  return {telling:telling,rondes:rondes};
+}
+/** Hoeveel wedstrijden zijn er in totaal gespeeld? */
+function gespeeldeWedstrijden(){
+  var n=0;
+  ['hk','pk'].forEach(function(ck){
+    S.comps[ck].matches.forEach(function(m){if(parseScore(m.actual))n++;});
+  });
+  return n;
+}
+
+/* ================= beurten ================= */
+function beurtVoor(i){
+  var b=(S.beurten&&S.beurten.length)?S.beurten:S.players;
+  if(!b.length)return '';
+  return b[i%b.length];
+}
+function gespeeld(ck,i){return !!String(S.comps[ck].matches[i].actual||'').trim();}
+function huidigeRonde(){
+  for(var i=0;i<22;i++) if(!gespeeld('hk',i)||!gespeeld('pk',i)) return i;
+  return 21;
+}
+function parseDatum(s){
+  if(!s)return null;
+  var m=String(s).match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+  return m?new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],0,0):null;
+}
+/** Standaard: de vrijdag voor de wedstrijd om 18:00.
+ *  Speelt een ronde doordeweeks, dan ligt die vrijdag bijna een week eerder.
+ *  In dat geval nemen we de dag ervoor om 18:00, zodat je niet twee rondes tegelijk hoeft in te vullen. */
+function vrijdagVoor(d){
+  var x=new Date(d.getFullYear(),d.getMonth(),d.getDate(),18,0,0,0);
+  var weekend=(d.getDay()===0||d.getDay()===6);
+  if(!weekend){x.setDate(x.getDate()-1);return x;}
+  do{x.setDate(x.getDate()-1);}while(x.getDay()!==5);
+  return x;
+}
+/** Sluitmoment per competitie: handmatig gezet wint van de kalender,
+ *  behalve als dat handmatige moment ná de wedstrijd ligt. Dan klopt het niet en pakken we de kalender. */
+function deadlineVoor(ck,i){
+  var m=S.comps[ck]&&S.comps[ck].matches[i];
+  if(!m)return '';
+  var d=parseDatum(m.datum);
+  if(m.deadline){
+    var hand=new Date(m.deadline);
+    if(!d||(!isNaN(hand.getTime())&&hand.getTime()<d.getTime()))return m.deadline;
+  }
+  return d?vrijdagVoor(d).toISOString():'';
+}
+function speeldatum(ck,i){
+  var m=S.comps[ck]&&S.comps[ck].matches[i];
+  return m?parseDatum(m.datum):null;
+}
+/** Speelt deze ronde doordeweeks? Dan klopt vrijdag 18:00 waarschijnlijk niet. */
+function wijktAf(ck,i){
+  var d=speeldatum(ck,i);
+  return !!d && d.getDay()!==0 && d.getDay()!==6;
+}
+function rondeDicht(ck,i){
+  if(gespeeld(ck,i))return true;
+  var dl=deadlineVoor(ck,i);
+  if(!dl)return false;
+  return Date.now()>=new Date(dl).getTime();
+}
+function resterend(dl){
+  if(!dl)return null;
+  var ms=new Date(dl).getTime()-Date.now();
+  if(ms<=0)return null;
+  var min=Math.floor(ms/60000), uur=Math.floor(min/60), dag=Math.floor(uur/24);
+  if(dag>0)return dag+(dag===1?' dag':' dagen')+' en '+(uur%24)+' uur';
+  if(uur>0)return uur+' uur en '+(min%60)+' min';
+  return min+' min';
+}
+function datumTekst(dl){
+  if(!dl)return '';
+  var d=new Date(dl), dagen=['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
+  return dagen[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)+' om '+
+    d.getHours()+':'+('0'+d.getMinutes()).slice(-2);
+}
+function canPickMatch(ck,i){
+  if(rondeDicht(ck,i))return false;
+  return ADMIN||beurtVoor(i)===ME;
+}
+function bekersVan(p){return (S.bekers||[]).filter(function(b){return b.winnaar===p;});}
+function bekerHtml(p){
+  var n=bekersVan(p).length;
+  if(!n)return '';
+  var titel=bekersVan(p).map(function(b){return b.seizoen;}).join(', ');
+  return '<span class="beker" title="Kampioen '+h(titel)+'">'+new Array(n+1).join('🏆')+'</span>';
+}
+
+/* ================= rechten ================= */
+function canEditPred(ck,player,field,idx){
+  if(field==='wvdw'){
+    if(rondeDicht(ck,idx))return false;
+    return ADMIN||player===ME;
+  }
+  if(S.comps[ck].dicht)return false;
+  if(ADMIN)return true;
+  return player===ME;
+}
+function canEditResult(){return ADMIN;}
+
+/* ================= opslaan ================= */
+function setPath(obj,path,value){
+  var o=obj;
+  for(var i=0;i<path.length-1;i++){var k=path[i];if(o[k]==null)o[k]=(typeof path[i+1]==='number')?[]:{};o=o[k];}
+  o[path[path.length-1]]=value;
+}
+function patch(path,value){
+  setPath(S,path,value);
+  // vervang een eerdere wijziging op hetzelfde pad
+  var key=JSON.stringify(path);
+  queue=queue.filter(function(q){return JSON.stringify(q.path)!==key;});
+  queue.push({path:path,value:value});
+  dirty=true; setStatus('opslaan…','busy');
+  scheduleFlush();
+}
+var flushT=null;
+function scheduleFlush(){clearTimeout(flushT);flushT=setTimeout(flush,700);}
+function flush(){
+  if(sending||!queue.length)return;
+  var batch=queue; queue=[]; sending=true;
+  google.script.run
+    .withSuccessHandler(function(res){
+      sending=false;
+      if(res && res.error){ setStatus('fout','err'); toast(res.error,true); }
+      else{
+        S=res.state;
+        // Wat je tijdens het opslaan nog intikte staat nog in de wachtrij.
+        // Dat zetten we terug, anders overschrijft de server je laatste letters.
+        queue.forEach(function(q){setPath(S,q.path,q.value);});
+        dirty=queue.length>0;
+        setStatus(dirty?'opslaan…':'opgeslagen',dirty?'busy':'ok');
+        if(res.refused && res.refused.length) toast(res.refused[0],true);
+        // Tekenen terwijl iemand typt geeft gedoe, dat doen we zo wel.
+        if(!aanHetTypen())render();
+      }
+      if(queue.length)scheduleFlush();
+    })
+    .withFailureHandler(function(err){
+      sending=false; queue=batch.concat(queue);
+      setStatus('geen verbinding','err');
+      toast('Opslaan mislukt, ik probeer het zo nog eens.',true);
+      setTimeout(scheduleFlush,4000);
+    })
+    .applyPatches(ME,PIN,JSON.stringify(batch));
+}
+function refresh(silent){
+  if(dirty||sending)return;
+  if(!silent)setStatus('verversen…','busy');
+  google.script.run.withSuccessHandler(function(res){
+    if(!res||!res.state)return;
+    if(document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return;
+    if(res.state.rev!==S.rev){S=res.state;render();}
+    setStatus('bijgewerkt','ok');
+  }).withFailureHandler(function(){setStatus('geen verbinding','err');}).getState(ME,PIN);
+}
+
+/* ================= login ================= */
+function boot(){
+  var saved=null;
+  try{saved=JSON.parse(localStorage.getItem('hn-login')||'null');}catch(e){}
+  if(saved&&saved.who&&saved.pin){
+    google.script.run.withSuccessHandler(function(r){
+      if(r&&r.ok){start(r);}else{showLogin();}
+    }).withFailureHandler(showLogin).login(saved.who,saved.pin);
+  } else showLogin();
+}
+function showLogin(err){
+  google.script.run.withSuccessHandler(function(info){
+    var sel=null;
+    document.getElementById('app').innerHTML=
+      '<div class="login"><h1>Hockey <span>NERDS</span></h1><div class="sub">Seizoen '+h(info.season)+'</div>'+
+      '<div class="card" style="margin-top:18px"><h2>Wie ben je?</h2>'+
+      '<div class="pick" id="pick">'+info.players.map(function(p){
+        return '<button data-p="'+h(p)+'">'+h(p)+(info.claimed[p]?'':'<span class="new">nieuw</span>')+'</button>';}).join('')+'</div>'+
+      '<label class="mini">Pincode</label>'+
+      '<input id="pin" type="password" inputmode="numeric" placeholder="kies zelf een code" autocomplete="off">'+
+      '<p class="hint">Eerste keer? De code die je nu invult wordt jouw code. Onthoud hem.</p>'+
+      (err?'<p class="warn">'+h(err)+'</p>':'')+
+      '<button class="btn pri" id="go" style="width:100%;margin-top:12px;padding:11px">Inloggen</button>'+
+      '</div></div>';
+    document.getElementById('pick').addEventListener('click',function(e){
+      var b=e.target.closest('button[data-p]');if(!b)return;
+      sel=b.dataset.p;
+      Array.prototype.forEach.call(this.children,function(c){c.classList.toggle('on',c.dataset.p===sel);});
+      document.getElementById('pin').focus();
+    });
+    function submit(){
+      var pin=document.getElementById('pin').value.trim();
+      if(!sel)return toast('Kies eerst je naam',true);
+      if(!pin)return toast('Vul een pincode in',true);
+      document.getElementById('go').textContent='Bezig…';
+      google.script.run.withSuccessHandler(function(r){
+        if(r&&r.ok){try{localStorage.setItem('hn-login',JSON.stringify({who:sel,pin:pin}));}catch(e){} start(r);}
+        else showLogin(r&&r.error||'Inloggen mislukt');
+      }).withFailureHandler(function(){showLogin('Verbinding mislukt');}).login(sel,pin);
+    }
+    document.getElementById('go').onclick=submit;
+    document.getElementById('pin').addEventListener('keydown',function(e){if(e.key==='Enter')submit();});
+  }).getPlayers();
+}
+function start(r){
+  S=r.state; ME=r.who; ADMIN=r.admin;
+  try{PIN=JSON.parse(localStorage.getItem('hn-login')).pin;}catch(e){}
+  shell(); render();
+  clearInterval(pollTimer); pollTimer=setInterval(function(){refresh(true);},25000);
+}
+function logout(){try{localStorage.removeItem('hn-login');}catch(e){} location.reload();}
+
+/* ================= shell ================= */
+var TABS=[['stand','Stand'],['wvdw','Wedstrijd van de week'],['pred','Eindstand-voorspellingen'],['live','Competitiestand'],['result','Werkelijke eindstand'],['info','Info']];
+function shell(){
+  document.getElementById('app').innerHTML=
+    '<header><h1>Hockey <span>NERDS</span></h1>'+
+    '<div class="sub">Seizoen '+h(S.season)+'</div><div style="flex:1"></div>'+
+    '<span class="tag me">'+h(ME)+(ADMIN?' · beheerder':'')+'</span>'+
+    '<span id="status"></span>'+
+    '<button class="btn" id="btnRefresh">Ververs</button>'+
+    '<button class="btn" id="btnLogout">Uitloggen</button>'+
+    '</header><main><nav id="nav"></nav><div id="view"></div></main>';
+  document.getElementById('btnRefresh').onclick=function(){refresh(false);};
+  document.getElementById('btnLogout').onclick=logout;
+  document.getElementById('nav').addEventListener('click',function(e){
+    var b=e.target.closest('button[data-tab]');if(!b)return;tab=b.dataset.tab;render();
+  });
+  var v=document.getElementById('view');
+  v.addEventListener('input',onInput);
+  v.addEventListener('change',onChange);
+  v.addEventListener('click',onClick);
+  v.addEventListener('keydown',function(e){if(e.target.dataset&&e.target.dataset.half)scoreToets(e);});
+  // Klaar met typen? Dan pas het scherm bijwerken, zodat je invoer blijft staan.
+  v.addEventListener('focusout',function(){
+    setTimeout(function(){if(!aanHetTypen()&&!sending&&!queue.length)render();},250);
+  });
+  v.addEventListener('focusin',function(e){
+    if(e.target.dataset&&e.target.dataset.half&&e.target.select)e.target.select();
+  });
+}
+/**
+ * Wie aan het typen is mag zijn invoer niet kwijtraken als het scherm
+ * opnieuw wordt opgebouwd. We onthouden welk vakje aan de beurt was en
+ * waar de cursor stond, en zetten dat er daarna weer terug.
+ */
+function veldSleutel(el){
+  if(!el||!el.dataset)return '';
+  var d=el.dataset;
+  return [d.a||'',d.c||'',d.p||'',d.i||'',d.half||'',d.adm||'',el.id||''].join('|');
+}
+function bewaarFocus(){
+  var el=document.activeElement;
+  if(!el||!/INPUT|SELECT|TEXTAREA/.test(el.tagName))return null;
+  var s=null,e=null;
+  try{s=el.selectionStart;e=el.selectionEnd;}catch(x){}
+  return {sleutel:veldSleutel(el),start:s,eind:e};
+}
+function herstelFocus(v){
+  if(!v||!v.sleutel)return;
+  var alles=document.querySelectorAll('#view input,#view select,#view textarea');
+  for(var i=0;i<alles.length;i++){
+    if(veldSleutel(alles[i])!==v.sleutel)continue;
+    try{
+      alles[i].focus({preventScroll:true});
+      if(v.start!=null&&alles[i].setSelectionRange)alles[i].setSelectionRange(v.start,v.eind);
+    }catch(x){}
+    return;
+  }
+}
+/** Staat de cursor nu in een invoerveld? Dan even niet opnieuw tekenen. */
+function aanHetTypen(){
+  var el=document.activeElement;
+  return !!(el&&/INPUT|SELECT|TEXTAREA/.test(el.tagName));
+}
+
+function render(){
+  var focus=bewaarFocus();
+  document.getElementById('nav').innerHTML=TABS
+    .filter(function(t){return t[0]!=='result'||ADMIN||true;})
+    .map(function(t){return '<button data-tab="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>';}).join('');
+  document.getElementById('view').innerHTML=
+    ({stand:vStand,wvdw:vWvdw,pred:vPred,live:vLive,result:vResult,info:vInfo})[tab]();
+  herstelFocus(focus);
+}
+
+/* ================= stand ================= */
+function vStand(){
+  var sc=scoreAll();
+  var order=S.players.slice().sort(function(a,b){return sc[b].total-sc[a].total;});
+  var max=1; S.players.forEach(function(p){if(sc[p].total>max)max=sc[p].total;});
+  var rows=order.map(function(p,i){
+    var s=sc[p], tot=Math.max(1,s.total);
+    var seg=[['var(--acc)',s.hk.wvdw+s.pk.wvdw],['var(--acc2)',s.hk.positie+s.pk.positie],['var(--gold)',s.hk.bonus+s.pk.bonus]];
+    return '<div class="lrow '+(i===0&&s.total>0?'first ':'')+(p===ME?'mine':'')+'">'+
+      '<div class="pos">'+(i+1)+'</div>'+
+      '<div><div class="pname">'+h(p)+bekerHtml(p)+'</div><div class="bars">'+
+      seg.map(function(x){return '<i style="background:'+x[0]+';width:'+(x[1]/tot*100*(s.total/max))+'%"></i>';}).join('')+
+      '</div></div>'+
+      '<div class="psub">HK<br><b>'+s.hk.total+'</b></div>'+
+      '<div class="psub">PK<br><b>'+s.pk.total+'</b></div>'+
+      '<div class="ptot">'+s.total+'</div></div>';
+  }).join('');
+  var detail=uitsplitsing(sc,order);
+  return beurtBanner()+
+    '<div class="card"><h2>Tussenstand <span class="tag">totaal</span></h2><div class="lead">'+rows+'</div>'+
+    '<div class="legend"><span><b style="background:var(--acc)"></b>Wedstrijd van de week</span>'+
+    '<span><b style="background:var(--acc2)"></b>Teams op juiste plek</span>'+
+    '<span><b style="background:var(--gold)"></b>Bonusvragen</span></div></div>'+
+    '<div class="grid2"><div class="kol">'+
+    '<div class="card"><h2>Uitsplitsing</h2>'+detail+'</div>'+
+    '<div class="card"><h2>Ranglijst <span class="tag">'+(eindstandKlaar()?'eindstand':'nu')+'</span></h2>'+
+    ranglijstBlok()+'</div></div>'+
+    '<div class="card"><h2>Bonuspunten <span class="tag">live projectie</span></h2>'+
+    bonusProjectieBlok()+'</div></div>';
+}
+
+/** Staat de definitieve eindstand er al in, of kijken we naar de tussenstand? */
+function eindstandKlaar(){
+  return ['hk','pk'].some(function(ck){
+    return (S.comps[ck].result.standing||[]).some(function(t){return String(t||'').trim();});
+  });
+}
+
+/** De kale ranglijst van beide competities, twaalf plekken per kolom. */
+function ranglijstBlok(){
+  var leeg=0;
+  var kolommen=['hk','pk'].map(function(ck){
+    var c=S.comps[ck];
+    var eind=(c.result.standing||[]).map(function(t){return String(t||'').trim();});
+    var klaar=eind.some(Boolean);
+    var lijst=klaar?eind:((c.live&&c.live.standing)||[]).map(function(t){return String(t||'').trim();});
+    var rijen=lijst.map(function(t,i){
+      if(!t)return '';
+      return '<div class="rangrij'+(i===0?' kop':'')+'"><span class="nr">'+(i+1)+'</span><span>'+h(t)+'</span></div>';
+    }).filter(Boolean).join('');
+    if(!rijen)leeg++;
+    return '<div><h3>'+h(c.name)+'</h3>'+
+      (rijen?'<div class="rang">'+rijen+'</div>':'<p class="hint">Nog niet bijgewerkt.</p>')+'</div>';
+  }).join('');
+  var voet=leeg===2
+    ? (ADMIN?'Plak de ranglijst op het tabblad Competitiestand, dan staat hij hier.'
+           :'Zodra '+h(S.admin)+' de ranglijst bijwerkt, staat hij hier.')
+    : 'Zoals de ranglijst het laatst is bijgewerkt op het tabblad Competitiestand.';
+  return '<div class="rangwrap">'+kolommen+'</div><p class="hint">'+voet+'</p>';
+}
+
+/** Uitsplitsing: waar komen de punten vandaan, plus twee statistieken. */
+function uitsplitsing(sc,order){
+  var rw=rondeWinnaars(), gespeeld=gespeeldeWedstrijden();
+  var rij=S.players.map(function(p){
+    var s=sc[p];
+    return {p:p, whk:s.hk.wvdw, wpk:s.pk.wvdw, rhk:s.hk.positie, rpk:s.pk.positie,
+      perfect:perfecteScores(p), rondes:rw.telling[p]||0, wvdw:s.hk.wvdw+s.pk.wvdw};
+  });
+  var kolommen=[
+    {k:'whk', kop:'WVDW HK'},{k:'wpk', kop:'WVDW PK'},
+    {k:'rhk', kop:'Ranglijst HK'},{k:'rpk', kop:'Ranglijst PK'},
+    {k:'perfect', kop:'Perfect', tip:'exact goed voorspelde uitslagen'},
+    {k:'rondes', kop:'Rondes gewonnen', tip:'hoogste score van de ronde'}
+  ];
+  var beste={};
+  kolommen.forEach(function(col){
+    var m=0; rij.forEach(function(r){if(r[col.k]>m)m=r[col.k];});
+    beste[col.k]=m;
+  });
+  var maxW=1; rij.forEach(function(r){if(r.wvdw>maxW)maxW=r.wvdw;});
+  var op=order.map(function(p){
+    for(var i=0;i<rij.length;i++) if(rij[i].p===p)return rij[i];
+  });
+  var body=op.map(function(r){
+    return '<tr class="'+(r.p===ME?'me':'')+'"><td class="name">'+h(r.p)+bekerHtml(r.p)+
+      '<div class="staaf"><i style="width:'+(r.wvdw/maxW*100)+'%"></i></div></td>'+
+      kolommen.map(function(col){
+        var v=r[col.k], top=(v>0&&v===beste[col.k]);
+        return '<td class="getal'+(top?' top':'')+'">'+v+'</td>';
+      }).join('')+'</tr>';
+  }).join('');
+  return '<div class="scroll"><table class="stat"><tr><th class="name">Speler</th>'+
+    kolommen.map(function(col){return '<th'+(col.tip?' title="'+col.tip+'"':'')+'>'+col.kop+'</th>';}).join('')+
+    '</tr>'+body+'</table></div>'+
+    '<p class="hint">'+gespeeld+' wedstrijden gespeeld, '+rw.rondes+' speelrondes verwerkt. '+
+    'De oranje balk laat zien hoe je ervoor staat op de wedstrijd van de week. '+
+    'Bij Rondes gewonnen telt een gedeelde eerste plek voor iedereen mee.</p>';
+}
+
+/** Wat zou elke bonusvraag nu opleveren als het hierbij bleef? */
+function bonusProjectie(ck){
+  var c=S.comps[ck], L=(c.live&&c.live.standing)||[], kop=String(L[0]||'').trim();
+  var eindKlaar=!!String(c.result.standing[0]||'').trim();
+  var basisKop=eindKlaar?String(c.result.standing[0]||'').trim():kop;
+  var lijst=[
+    {k:'kampioen', label:'Kampioen', pt:kampioenPt(c,S.pts),
+     vast:String(c.result.kampioen||'').trim(), voorlopig:basisKop,
+     note:ck==='hk'?'koploper nu, de play-offs beslissen':'koploper nu, en dat is meteen de kampioen'},
+    {k:'winter', label:'Winterkampioen', pt:S.pts.winter,
+     vast:String(c.result.winter||'').trim(), voorlopig:basisKop, note:'koploper nu'},
+    {k:'topscorer', label:'Topscorer', pt:S.pts.topscorer,
+     vast:String(c.result.topscorer||'').trim(), voorlopig:'', note:'vul ik in aan het eind'},
+    {k:'minsteTegen', label:'Minste tegengoals', pt:S.pts.minsteTegen,
+     vast:String(c.result.minsteTegen||'').trim(), voorlopig:'', note:'vul ik in aan het eind'},
+    {k:'meestScorend', label:'Meest scorend', pt:S.pts.meestScorend,
+     vast:String(c.result.meestScorend||'').trim(), voorlopig:'', note:'vul ik in aan het eind'}
+  ];
+  if(ck==='hk')lijst.push({k:'speler', label:'Speler van het seizoen', pt:S.pts.speler,
+    vast:String(c.result.speler||'').trim(), voorlopig:'', note:'vul ik in aan het eind'});
+  return lijst;
+}
+function bonusProjectieBlok(){
+  var blokken=['hk','pk'].map(function(ck){
+    var c=S.comps[ck];
+    var rijen=bonusProjectie(ck).map(function(v){
+      var antw=v.vast||v.voorlopig;
+      var wie=antw?S.players.filter(function(p){
+        var pr=c.preds[p]||blankPred(); return eq(pr[v.k],antw);
+      }):[];
+      var mijn=String((c.preds[ME]||blankPred())[v.k]||'').trim();
+      var ik=wie.indexOf(ME)>=0;
+      return '<div class="projrij'+(ik?' raak':'')+(antw?'':' leeg')+'">'+
+        '<span class="vraag">'+h(v.label)+' <span class="mini">'+v.pt+' pt</span></span>'+
+        '<span class="antw">'+(antw?h(antw):'nog niet bekend')+
+          '<small>'+(v.vast?'staat vast':h(v.note))+
+            (mijn?' · jij zei '+h(mijn):' · jij hebt niets ingevuld')+'</small></span>'+
+        '<span class="wie'+(wie.length?'':' niemand')+'">'+
+          (antw?(wie.length?wie.map(function(p){return p===ME?'jij':h(p);}).join(', '):'niemand'):'–')+
+        '</span></div>';
+    }).join('');
+    return '<h3>'+h(c.name)+'</h3><div class="proj">'+rijen+'</div>';
+  }).join('');
+  var pr=projectie();
+  var order=S.players.slice().sort(function(a,b){return pr[b].total-pr[a].total;});
+  var lijst='<h3>Als het hierbij zou blijven</h3><div class="lead">'+
+    order.map(function(p,i){
+      return '<div class="lrow '+(i===0?'first ':'')+(p===ME?'mine':'')+'" style="grid-template-columns:26px 1fr auto auto">'+
+        '<div class="pos">'+(i+1)+'</div><div class="pname">'+h(p)+'</div>'+
+        '<div class="psub">bonus<br><b>'+pr[p].bonus+'</b></div>'+
+        '<div class="ptot">'+pr[p].total+'</div></div>';
+    }).join('')+'</div>';
+  return blokken+lijst+
+    '<p class="hint">Deze punten tellen nog niet mee in de echte stand. Ze laten zien waar je zou uitkomen '+
+    'als de huidige ranglijst de eindstand wordt.</p>';
+}
+/** Projectie per speler: behaalde WVDW-punten plus wat de huidige stand zou opleveren. */
+function projectie(){
+  var out={};
+  S.players.forEach(function(p){out[p]={wvdw:0,positie:0,bonus:0,total:0};});
+  ['hk','pk'].forEach(function(ck){
+    var c=S.comps[ck];
+    var eind=c.result.standing.filter(function(t){return !!String(t||'').trim();}).length===12;
+    var basis=eind?c.result.standing:((c.live&&c.live.standing)||[]);
+    var kop=String(basis[0]||'').trim();
+    S.players.forEach(function(p){
+      var pr=c.preds[p]||blankPred(), s=scorePlayer(c,p,S.pts), o=out[p];
+      o.wvdw+=s.wvdw;
+      for(var i=0;i<12;i++) if(eq(pr.standing[i],basis[i])) o.positie+=S.pts.positie;
+      if(String(c.result.kampioen||'').trim()) o.bonus+=eq(pr.kampioen,c.result.kampioen)?kampioenPt(c,S.pts):0;
+      else if(kop&&ck==='pk') o.bonus+=eq(pr.kampioen,kop)?S.pts.kampioenPk:0;
+      if(String(c.result.winter||'').trim()) o.bonus+=eq(pr.winter,c.result.winter)?S.pts.winter:0;
+      else if(kop) o.bonus+=eq(pr.winter,kop)?S.pts.winter:0;
+      ['topscorer','minsteTegen','meestScorend'].forEach(function(k){
+        if(String(c.result[k]||'').trim()) o.bonus+=eq(pr[k],c.result[k])?S.pts[k]:0;
+      });
+      if(ck==='hk'&&String(c.result.speler||'').trim()) o.bonus+=eq(pr.speler,c.result.speler)?S.pts.speler:0;
+    });
+  });
+  S.players.forEach(function(p){var o=out[p];o.total=o.wvdw+o.positie+o.bonus;});
+  return out;
+}
+
+/* ================= snelle score-invoer ================= */
+/** Twee cijfervakjes in plaats van "3-1" typen. Scheelt het streepje en geeft een cijfertoetsenbord. */
+function scoreVak(val,attrs,extra){
+  var p=parseScore(val);
+  var a=p?p[0]:'', b=p?p[1]:'';
+  return '<span class="sc'+(extra?' '+extra:'')+'">'+
+    '<input inputmode="numeric" pattern="[0-9]*" maxlength="2" value="'+a+'" data-half="h" '+attrs+'>'+
+    '<i>-</i>'+
+    '<input inputmode="numeric" pattern="[0-9]*" maxlength="2" value="'+b+'" data-half="a" '+attrs+'></span>';
+}
+/**
+ * Leest de twee vakjes uit en maakt er "3-1" van.
+ * Staat er pas één cijfer, dan is de score nog onderweg: dan slaan we niets op
+ * en laten we staan wat er staat. Anders zag je je eerste cijfer verdwijnen.
+ */
+function scoreUit(el){
+  var box=el.parentNode;
+  var v=box.querySelectorAll('input[data-half]');
+  var a=String(v[0].value).replace(/\D/g,'').slice(0,2);
+  var b=String(v[1].value).replace(/\D/g,'').slice(0,2);
+  if(v[0].value!==a)v[0].value=a;
+  if(v[1].value!==b)v[1].value=b;
+  if(a!==''&&b!=='')return a+'-'+b;
+  if(a===''&&b==='')return '';
+  return null;
+}
+/** Enter springt vooruit, backspace in een leeg vakje springt terug. */
+function scoreToets(e){
+  var vakken,i;
+  if(e.key==='Enter'){
+    e.preventDefault();
+    vakken=Array.prototype.slice.call(document.querySelectorAll('.sc input[data-half]'));
+    i=vakken.indexOf(e.target);
+    if(i>=0&&i+1<vakken.length){vakken[i+1].focus();vakken[i+1].select();}
+    return;
+  }
+  if(e.key==='Backspace'&&e.target.dataset.half==='a'&&e.target.value===''){
+    e.preventDefault();
+    var vorig=e.target.parentNode.querySelectorAll('input[data-half]')[0];
+    if(vorig){vorig.focus();vorig.select();}
+  }
+}
+/** Na één cijfer meteen door naar het rechtervakje. Wil je 10 of hoger, ga dan terug met backspace. */
+function scoreDoor(el){
+  if(el.dataset.half!=='h'||String(el.value).length!==1)return;
+  var nx=el.parentNode.querySelectorAll('input[data-half]')[1];
+  if(nx){nx.focus();nx.select();}
+}
+
+/* ================= wedstrijd kiezen ================= */
+/** Alle mogelijke ontmoetingen, thuis eerst. Voedt het zoekveld. */
+function parenLijst(ck){
+  var t=S.comps[ck].teams||[], o=[];
+  t.forEach(function(a){t.forEach(function(b){if(a!==b)o.push(a+' - '+b);});});
+  return '<datalist id="paren-'+ck+'">'+
+    o.map(function(x){return '<option value="'+h(x)+'"></option>';}).join('')+'</datalist>';
+}
+/** Leest "Bloemendaal - Rotterdam" en geeft de twee clubnamen terug zoals ze in de lijst staan. */
+function splitsMatch(ck,tekst){
+  var t=S.comps[ck].teams||[];
+  var d=String(tekst||'').split(/\s+[-–—]\s+/);
+  if(d.length!==2)return null;
+  function vind(n){
+    var s=String(n||'').trim().toLowerCase();
+    for(var i=0;i<t.length;i++) if(t[i].toLowerCase()===s) return t[i];
+    return null;
+  }
+  var thuis=vind(d[0]), uit=vind(d[1]);
+  if(!thuis||!uit||thuis===uit)return null;
+  return [thuis,uit];
+}
+/** Het paneel om een wedstrijd te kiezen. Bekende wedstrijden als knop, daarnaast vrij zoeken. */
+function matchKiezer(ck,i){
+  var c=S.comps[ck], m=c.matches[i];
+  var prog=(m.programma||[]).filter(Boolean);
+  var nu=matchLabel(m);
+  var knoppen=prog.length
+    ? '<div class="wlijst">'+prog.map(function(w){
+        return '<button class="wkeuze'+(w===nu?' aan':'')+'" data-zet="'+h(w)+'" data-c="'+ck+'" data-i="'+i+'">'+h(w)+'</button>';
+      }).join('')+'</div>'
+    : '';
+  var beheer=ADMIN
+    ? '<details class="wbeheer"><summary>Programma van deze ronde aanvullen</summary>'+
+      '<p class="hint">Plak de wedstrijden van deze speelronde, één per regel. Datums en tijden mogen er gewoon in blijven staan.</p>'+
+      '<textarea id="prog-'+ck+'-'+i+'" rows="4" placeholder="Bloemendaal - Rotterdam&#10;SCHC - Oranje-Rood&#10;..."></textarea>'+
+      '<div class="row" style="margin-top:6px">'+
+      '<button class="btn pri" data-adm="setProgramma" data-arg="'+ck+':'+i+'">Opslaan</button>'+
+      '<button class="btn" data-adm="wisProgramma" data-arg="'+ck+':'+i+'">Leegmaken</button></div></details>'
+    : '';
+  return '<div class="wkiezer"><div class="wkop"><b>Speelronde '+(i+1)+'</b>'+
+    '<span class="mini">'+h(c.name)+'</span><div style="flex:1"></div>'+
+    '<button class="btn mini" data-kies="dicht" data-c="'+ck+'">sluiten</button></div>'+
+    (prog.length
+      ? '<p class="hint">'+(prog.length>=6?'De wedstrijden van deze ronde':'Bekend uit deze ronde')+':</p>'+knoppen
+      : '<p class="hint">Voor deze ronde staat het programma nog niet in de app.</p>')+
+    '<p class="hint" style="margin-top:10px">Zoek zelf een wedstrijd, typ een clubnaam:</p>'+
+    '<input class="wveld" list="paren-'+ck+'" placeholder="bijvoorbeeld bloem" '+
+      'data-a="zoekmatch" data-c="'+ck+'" data-i="'+i+'" value="'+h(nu)+'">'+
+    beheer+'</div>';
+}
+
+/* ================= wedstrijd van de week ================= */
+function wvdwBlock(ck){
+  var c=S.comps[ck];
+  var nu=huidigeRonde();
+  var zichtbaar=zichtbareRondes();
+  var head=zichtbaar.map(function(i){
+    var m=c.matches[i];
+    var kiezer=beurtVoor(i), d=speeldatum(ck,i);
+    var korteDatum=d?(d.getDate()+'/'+(d.getMonth()+1)):'';
+    var kop='<div class="mini">W'+(i+1)+(korteDatum?' · '+korteDatum:'')+
+        (wijktAf(ck,i)?' <span style="color:var(--bad)">!</span>':'')+'</div>'+
+      '<div class="kiezer'+(kiezer===ME?' ik':'')+(i===nu?' nu':'')+'">'+h(kiezer)+'</div>';
+    var magKiezen=canPickMatch(ck,i), naam=matchLabel(m);
+    return '<th'+(i===nu?' class="ronde-nu"':'')+'>'+kop+
+      '<div class="wcel"><div class="wlabel'+(naam?'':' leeg')+'">'+
+        (h(naam)||(magKiezen?'nog niet gekozen':'&nbsp;'))+'</div>'+
+      (magKiezen?'<button class="btn mini" data-kies="'+i+'" data-c="'+ck+'">'+
+        (naam?'wijzig':'kies wedstrijd')+'</button>':'')+'</div></th>';
+  }).join('');
+  var actualRow=zichtbaar.map(function(i){
+    var m=c.matches[i];
+    return '<td>'+(ADMIN
+      ? scoreVak(m.actual,'data-a="mactual" data-c="'+ck+'" data-i="'+i+'"','uitslag')
+      : '<span class="ro">'+(h(m.actual)||'–')+'</span>')+'</td>';
+  }).join('');
+  var rows=S.players.map(function(p){
+    var pr=c.preds[p]||blankPred();
+    return '<tr class="'+(p===ME?'me':'')+'"><td class="name">'+h(p)+bekerHtml(p)+'</td>'+
+      zichtbaar.map(function(i){
+        var m=c.matches[i];
+        var v=pr.wvdw[i], pt=matchPoints(v,m.actual,S.pts), played=!!String(m.actual||'').trim();
+        // Ingevulde uitslagen zijn meteen zichtbaar voor iedereen.
+        var cell = canEditPred(ck,p,'wvdw',i)
+          ? scoreVak(v,'data-a="pred" data-c="'+ck+'" data-p="'+h(p)+'" data-i="'+i+'"')
+          : '<span class="ro">'+(h(v)||'–')+'</span>';
+        var toon = played&&parseScore(m.actual);
+        return '<td>'+cell+'<div class="pts '+(pt>=10?'p10':pt>=7?'p7':pt>=5?'p5':pt>=2?'p2':'p0')+'" style="font-size:11px'+
+          (toon?';cursor:pointer;text-decoration:underline dotted':'')+'"'+
+          (toon?' data-uitleg="1" data-c="'+ck+'" data-p="'+h(p)+'" data-i="'+i+'"':'')+'>'+
+          (toon?pt:'&nbsp;')+'</div></td>';
+      }).join('')+
+      '<td class="pts">'+scorePlayer(c,p,S.pts).wvdw+'</td></tr>';
+  }).join('');
+  return '<div class="card"><h2>'+h(c.name)+' <span class="tag">wedstrijd van de week</span></h2>'+
+    rondeKiezer()+
+    '<div class="scroll"><table><tr><th class="name">Speler</th>'+head+'<th>Totaal</th></tr>'+rows+
+    '<tr><td class="name" style="color:var(--acc2)">Werkelijke uitslag</td>'+actualRow+'<td></td></tr></table></div>'+
+    parenLijst(ck)+
+    '<div id="kiezer-'+ck+'"></div>'+
+    '<div id="uitleg-'+ck+'"></div>'+
+    '<p class="hint">Wie aan de beurt is klikt op <b>kies wedstrijd</b> en tikt de wedstrijd aan, of zoekt hem op clubnaam. '+
+    'Twee vakjes: thuis en uit. Na één cijfer springt hij vanzelf door, met Enter ga je naar het volgende vakje. '+
+    'Wil je 10 of hoger, druk dan backspace om terug te gaan. Andermans voorspellingen blijven verborgen tot de ronde sluit. '+
+    'Tik op een puntenaantal om te zien hoe het is opgebouwd.</p></div>';
+}
+
+/* Op een smal scherm tonen we één speelronde tegelijk. */
+var rondeVenster=null;
+function smalScherm(){return window.innerWidth<720;}
+function zichtbareRondes(){
+  if(!smalScherm()){var a=[];for(var i=0;i<22;i++)a.push(i);return a;}
+  var r=rondeVenster===null?huidigeRonde():rondeVenster;
+  return [Math.max(0,Math.min(21,r))];
+}
+function rondeKiezer(){
+  var r=rondeVenster===null?huidigeRonde():rondeVenster;
+  return '<div class="rondekiezer">'+
+    '<button class="btn" data-ronde="'+(r-1)+'"'+(r<=0?' disabled':'')+'>&larr;</button>'+
+    '<b>Speelronde '+(r+1)+'</b>'+
+    '<button class="btn" data-ronde="'+(r+1)+'"'+(r>=21?' disabled':'')+'>&rarr;</button>'+
+    '<div style="flex:1"></div>'+
+    '<button class="btn" data-ronde="nu">Nu</button></div>';
+}
+function puntenUitleg(ck,p,i){
+  var c=S.comps[ck], m=c.matches[i], pr=c.preds[p]||blankPred();
+  var v=pr.wvdw[i], pt=matchPoints(v,m.actual,S.pts);
+  var reden;
+  if(pt===S.pts.exact)reden='exact goed';
+  else if(pt===S.pts.scoreWin)reden='één teamscore goed én de juiste winnaar';
+  else if(pt===S.pts.win)reden='de juiste winnaar, maar de score niet';
+  else if(pt===S.pts.score)reden='één teamscore goed, maar de verkeerde winnaar';
+  else reden='niets goed';
+  return '<div class="uitleg">'+h(p)+' voorspelde <b>'+h(v||'niets')+'</b>, het werd <b>'+h(m.actual)+'</b> bij '+
+    h(matchLabel(m))+'. Dat is '+reden+': <b>'+pt+' punten</b>.</div>';
+}
+/** Wat wordt er op dit moment van jou verwacht? */
+function watMoetIkNog(){
+  var nu=huidigeRonde(), lijst=[];
+  ['hk','pk'].forEach(function(ck){
+    var c=S.comps[ck], m=c.matches[nu];
+    if(rondeDicht(ck,nu))return;
+    if(!(m.home&&m.away)){
+      if(beurtVoor(nu)===ME||ADMIN)
+        lijst.push({tab:'wvdw',tekst:'Kies de wedstrijd voor de '+c.name});
+      return;
+    }
+    var pr=c.preds[ME];
+    if(pr&&!String(pr.wvdw[nu]||'').trim())
+      lijst.push({tab:'wvdw',tekst:'Voorspel '+matchLabel(m)});
+  });
+  ['hk','pk'].forEach(function(ck){
+    if(S.comps[ck].dicht)return;
+    var pr=S.comps[ck].preds[ME];
+    if(pr&&pr.standing.filter(Boolean).length<12)
+      lijst.push({tab:'pred',tekst:'Je '+S.comps[ck].name+'-eindstand is nog niet compleet'});
+  });
+  // Een gespeelde ronde zonder uitslag betekent dat de stand niet klopt.
+  ['hk','pk'].forEach(function(ck){
+    var c=S.comps[ck];
+    (c.mist||[]).forEach(function(i){
+      lijst.push({tab:'live',tekst:'Uitslag ontbreekt: '+c.name+' ronde '+(i+1)+', '+matchLabel(c.matches[i])+
+        (ADMIN?'. Druk bij Competitiestand op Nu ophalen':''),let:1});
+    });
+  });
+  return lijst;
+}
+
+/** Wie heeft er voor de lopende ronde nog niets ingevuld? */
+function wieMistNog(){
+  var nu=huidigeRonde(), mist={};
+  ['hk','pk'].forEach(function(ck){
+    var c=S.comps[ck], m=c.matches[nu];
+    if(rondeDicht(ck,nu)||!(m.home&&m.away))return;
+    S.players.forEach(function(p){
+      var pr=c.preds[p];
+      if(pr&&!String(pr.wvdw[nu]||'').trim())mist[p]=1;
+    });
+  });
+  return Object.keys(mist);
+}
+
+/** Eén regel per competitie: speeldatum, sluitmoment en aftelling. */
+function klokRegels(nu){
+  return ['hk','pk'].map(function(ck){
+    var c=S.comps[ck], d=speeldatum(ck,nu), dl=deadlineVoor(ck,nu);
+    var rest=resterend(dl), dicht=rondeDicht(ck,nu), af=wijktAf(ck,nu);
+    var status = dicht
+      ? '<span class="tag">gesloten</span>'
+      : (rest ? '<span class="klok'+(new Date(dl).getTime()-Date.now()<86400000?' bijna':'')+'">nog '+rest+'</span>'
+              : '<span class="klok">geen datum bekend</span>');
+    return '<div class="klokrij'+(af?' afwijkend':'')+'">'+
+      '<span class="kcomp">'+h(c.name)+'</span>'+
+      '<span class="kdatum">'+(d?h(datumTekst(d.toISOString())):'–')+'</span>'+
+      '<div style="flex:1"></div>'+status+
+      (dl?'<div class="ksluit">sluit '+h(datumTekst(dl))+'</div>':'')+
+      (af?'<div class="kwaarschuw">speelt doordeweeks, controleer het sluitmoment</div>':'')+
+      '</div>';
+  }).join('');
+}
+
+function beurtBanner(){
+  var nu=huidigeRonde(), wie=beurtVoor(nu), ik=(wie===ME);
+  var dicht=rondeDicht('hk',nu)&&rondeDicht('pk',nu);
+  var todo=watMoetIkNog(), mist=wieMistNog();
+  var klok = dicht ? '<span class="tag">gesloten</span>' : '';
+
+  var takenHtml = todo.length
+    ? '<div class="taken">'+todo.map(function(t){
+        return '<button class="taak'+(t.let?' let':'')+'" data-ga="'+t.tab+'">'+h(t.tekst)+'</button>';
+      }).join('')+'</div>'
+    : '<div class="taken klaar">Je bent bij, niets meer te doen deze ronde.</div>';
+
+  var mistHtml = mist.length
+    ? '<p class="hint" style="margin-top:8px">Nog niet ingevuld: <b>'+
+        mist.map(function(p){return p===ME?'jij':h(p);}).join(', ')+'</b></p>'
+    : '';
+
+  var volgende=[1,2,3].map(function(k){
+    return '<span class="mini">W'+(nu+1+k)+' · <b>'+h(beurtVoor(nu+k))+'</b></span>';
+  }).join('');
+
+  return '<div class="card beurt'+(todo.length?' ikbeurt':'')+'">'+
+    '<div class="predkop" style="margin-bottom:8px">'+
+      '<span class="naam">Speelronde '+(nu+1)+'</span>'+
+      '<span class="tag'+(ik?' me':'')+'">'+(ik?'jouw keuze':h(wie)+' kiest')+'</span>'+
+      '<div class="spacer"></div>'+klok+'</div>'+
+    takenHtml+mistHtml+
+    klokRegels(nu)+
+    '<div class="legend" style="margin-top:10px">Hierna: '+volgende+'</div>'+
+    '</div>';
+}
+function vWvdw(){
+  return beurtBanner()+wvdwBlock('hk')+wvdwBlock('pk')+
+  '<div class="card"><h2>Wie kiest wanneer</h2>'+
+    '<div class="scroll" style="max-height:none"><table><tr>'+
+    '<th class="name">Speelronde</th>'+
+    Array.apply(null,{length:22}).map(function(_,i){return '<th'+(i===huidigeRonde()?' style="color:var(--acc)"':'')+'>'+(i+1)+'</th>';}).join('')+
+    '</tr><tr><td class="name">Kiezer</td>'+
+    Array.apply(null,{length:22}).map(function(_,i){
+      var w=beurtVoor(i);
+      return '<td style="font-size:11px'+(w===ME?';color:var(--acc);font-weight:700':'')+(i===huidigeRonde()?';background:rgba(255,122,26,.12)':'')+'">'+h(w)+'</td>';
+    }).join('')+'</tr></table></div>'+
+    '<p class="hint">De volgorde loopt rond. Wie aan de beurt is kiest die week zowel de Hoofdklasse- als de Promotieklassewedstrijd.'+
+    (ADMIN?' De volgorde pas je aan bij Info.':'')+'</p></div>'+
+    '<div class="card"><h2>Puntentelling</h2><div class="legend">'+
+    '<span class="p10">'+S.pts.exact+' · exacte uitslag</span>'+
+    '<span class="p7">'+S.pts.scoreWin+' · één teamscore goed + juiste winnaar</span>'+
+    '<span class="p5">'+S.pts.win+' · alleen juiste winnaar of gelijkspel</span>'+
+    '<span class="p2">'+S.pts.score+' · één teamscore goed, winnaar fout</span></div></div>';
+}
+
+/* ================= eindstand-voorspellingen ================= */
+function teamOpts(teams,sel){
+  return '<option value=""></option>'+teams.map(function(t){return '<option'+(eq(t,sel)?' selected':'')+'>'+h(t)+'</option>';}).join('');
+}
+function predKaart(ck,p){
+  var c=S.comps[ck], pr=c.preds[p]||blankPred();
+  var eindstandBekend=!!String(c.result.standing[0]||'').trim();
+  var zichtbaar=(p===ME||c.dicht||eindstandBekend);
+  var mag=canEditPred(ck,p,'standing',0);
+  var s=scorePlayer(c,p,S.pts);
+
+  // dubbele teams opsporen
+  var seen={},dup={},dubbelNamen={};
+  pr.standing.forEach(function(t,i){
+    if(!t)return;
+    if(seen[t]!==undefined){dup[i]=1;dup[seen[t]]=1;dubbelNamen[t]=1;}else seen[t]=i;
+  });
+  var dubbel=Object.keys(dubbelNamen);
+
+  var kop='<div class="predkop"><span class="naam">'+h(p)+bekerHtml(p)+'</span>'+
+    (p===ME?'<span class="tag me">jij</span>':'')+
+    '<div class="spacer"></div>'+
+    '<span class="mini">punten</span><span class="predpunten">'+(s.positie+s.bonus)+'</span></div>';
+
+  if(!zichtbaar&&!mag){
+    return '<div class="predkaart">'+kop+
+      '<div class="verborgen">Verborgen tot de beheerder de voorspellingen op slot zet.</div></div>';
+  }
+
+  var rijen=pr.standing.map(function(t,i){
+    var goed=eq(t,c.result.standing[i]);
+    var cel=mag
+      ? '<select data-a="standing" data-c="'+ck+'" data-p="'+h(p)+'" data-i="'+i+'">'+teamOpts(c.teams,t)+'</select>'
+      : '<span class="ro'+(goed?' goed':'')+'">'+(h(t)||'–')+'</span>';
+    return '<div class="predrij'+(i===0?' top':'')+(dup[i]?' fout':'')+'"><span class="nr">'+(i+1)+'</span>'+cel+'</div>';
+  }).join('');
+
+  function bonusRij(label,veld,isTeam){
+    var v=pr[veld], goed=eq(v,c.result[veld]);
+    var cel=mag
+      ? (isTeam
+          ? '<select data-a="'+veld+'" data-c="'+ck+'" data-p="'+h(p)+'">'+teamOpts(c.teams,v)+'</select>'
+          : '<input value="'+h(v)+'" data-a="'+veld+'" data-c="'+ck+'" data-p="'+h(p)+'" placeholder="naam van de speler">')
+      : '<span class="ro'+(goed?' goed':'')+'">'+(h(v)||'–')+'</span>';
+    return '<div class="predrij"><span class="nr">'+label+'</span>'+cel+'</div>';
+  }
+
+  var bonus='<div class="predbonus">'+
+    bonusRij(ck==='hk'?'Kampioen (play-offs)':'Kampioen','kampioen',true)+
+    bonusRij('Winterkampioen','winter',true)+
+    bonusRij('Topscorer','topscorer',false)+
+    bonusRij('Minste tegengoals','minsteTegen',true)+
+    bonusRij('Meest scorend','meestScorend',true)+
+    (ck==='hk'?bonusRij('Speler van het seizoen','speler',false):'')+
+    '</div>';
+
+  var waarschuwing=dubbel.length
+    ? '<p class="warn" style="margin:0 0 10px">'+h(dubbel.join(', '))+
+      (dubbel.length>1?' staan':' staat')+' meer dan één keer in je lijst.</p>'
+    : '';
+
+  return '<div class="predkaart'+(p===ME?' mijn':'')+'">'+kop+waarschuwing+rijen+bonus+'</div>';
+}
+
+function predBlock(ck){
+  var c=S.comps[ck];
+  var anderen=S.players.filter(function(p){return p!==ME;});
+  var mijnKaart=(S.players.indexOf(ME)>=0)?predKaart(ck,ME):'';
+  var andereKaarten=anderen.map(function(p){
+    var s=scorePlayer(c,p,S.pts);
+    return '<details class="ander"><summary>'+h(p)+' · '+(s.positie+s.bonus)+' punten</summary>'+
+      predKaart(ck,p)+'</details>';
+  }).join('');
+  var start=speeldatum(ck,0);
+  return '<div class="card"><h2>'+h(c.name)+' <span class="tag">eindstand</span>'+
+    (c.dicht?' <span class="tag">op slot</span>':'')+'</h2>'+
+    '<p class="hint">'+(c.dicht
+      ? 'Deze competitie is begonnen, dus iedereens eindstand staat vast en is voor iedereen zichtbaar.'
+      : 'Je kunt dit nog wijzigen tot de eerste wedstrijd'+(start?' op '+h(datumTekst(start.toISOString())):'')+'. Daarna gaat het vanzelf op slot.')+'</p>'+
+    '<div class="predkolommen"><div>'+mijnKaart+'</div><div>'+
+    '<h3>De rest</h3>'+andereKaarten+'</div></div>'+
+    '<p class="hint">De kampioen wordt via de play-offs beslist, dus die vul je apart in. Hij hoeft dus niet je nummer 1 te zijn. '+
+    'Elk team op de juiste plek levert '+S.pts.positie+
+    ' punten op. Andermans lijstjes blijven verborgen tot de beheerder ze op slot zet.</p></div>';
+}
+function vPred(){return predBlock('hk')+predBlock('pk');}
+
+/* ================= competitiestand ================= */
+function liveBlock(ck){
+  var c=S.comps[ck], L=c.live||{standing:[],updated:''};
+  var ingevuld=L.standing.filter(function(t){return !!t;}).length;
+  var seen={},dup={};
+  L.standing.forEach(function(t,i){if(!t)return;if(seen[t]!==undefined){dup[i]=1;dup[seen[t]]=1;}else seen[t]=i;});
+
+  var rijen=L.standing.map(function(t,i){
+    var cel=ADMIN
+      ? '<select data-a="lstanding" data-c="'+ck+'" data-i="'+i+'" class="'+(dup[i]?'dup':'')+'">'+teamOpts(c.teams,t)+'</select>'
+      : '<b>'+(h(t)||'–')+'</b>';
+    var wie=S.players.filter(function(p){
+      var pr=c.preds[p]; return pr&&eq(pr.standing[i],t);
+    });
+    return '<tr'+(wie.indexOf(ME)>=0?' class="me"':'')+'><td class="name">'+(i+1)+'</td><td style="text-align:left">'+cel+'</td>'+
+      '<td style="text-align:left;color:'+(wie.length?'var(--gold)':'var(--dim)')+'">'+
+      (t?(wie.length?h(wie.join(', ')):'niemand'):'')+'</td></tr>';
+  }).join('');
+
+  var perSpeler=S.players.map(function(p){
+    var pr=c.preds[p]||blankPred(), n=0;
+    for(var i=0;i<12;i++) if(eq(pr.standing[i],L.standing[i])) n++;
+    return {p:p,n:n};
+  }).sort(function(a,b){return b.n-a.n;});
+
+  var kaart='<div class="scroll" style="max-height:none"><table>'+
+    '<tr><th class="name">#</th><th style="text-align:left">Team</th><th style="text-align:left">Wie had dit goed voorspeld</th></tr>'+
+    rijen+'</table></div>';
+
+  var telling='<h3>Voorlopige ranglijstpunten</h3><div class="lead">'+
+    perSpeler.map(function(x){
+      return '<div class="lrow '+(x.p===ME?'mine':'')+'" style="grid-template-columns:1fr auto auto">'+
+        '<div class="pname">'+h(x.p)+'</div>'+
+        '<div class="psub">'+x.n+' van 12 goed</div>'+
+        '<div class="ptot">'+(x.n*S.pts.positie)+'</div></div>';
+    }).join('')+'</div>'+
+    '<p class="hint">Dit telt nog niet mee in de stand. Pas als de competitie is afgelopen en de eindstand vaststaat, worden deze punten echt.</p>';
+
+  var beheer='';
+  if(ADMIN){
+    beheer='<h3>Eén keer per seizoen</h3>'+
+      '<div class="row">'+
+      '<button class="btn" data-adm="liveNaarWinter" data-arg="'+ck+'">Koploper vastleggen als winterkampioen</button>'+
+      '<button class="btn" data-adm="liveNaarEindstand" data-arg="'+ck+'">Deze stand is de eindstand</button></div>'+
+      '<details style="margin-top:14px"><summary class="hint" style="cursor:pointer">Zelf een stand invullen</summary>'+
+      '<p class="hint">Alleen nodig als het ophalen een keer misgaat. Kopieer de ranglijst van een site en plak hem hier. '+
+      'Plaatsnummers, punten en doelsaldo mogen er gewoon in blijven staan, de app haalt er zelf de teams in volgorde uit.</p>'+
+      '<textarea id="paste-'+ck+'" rows="5" placeholder="1 Amsterdam 8 22&#10;2 Bloemendaal 8 19&#10;..." style="width:100%;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:8px;font:inherit;font-size:13px;margin-top:6px"></textarea>'+
+      '<div class="row" style="margin-top:8px">'+
+      '<button class="btn" data-adm="pasteLive" data-arg="'+ck+'">Plakken en invullen</button>'+
+      '<button class="btn danger" data-adm="clearLive" data-arg="'+ck+'">Leegmaken</button></div></details>';
+  }
+
+  return '<div class="card"><h2>'+h(c.name)+' <span class="tag">actuele stand</span>'+
+    (L.updated?' <span class="mini">bijgewerkt '+h(String(L.updated).slice(0,10))+'</span>':'')+
+    (ingevuld&&ingevuld<12?' <span class="warn">'+ingevuld+' van 12 ingevuld</span>':'')+'</h2>'+
+    (ingevuld?'<div class="grid2"><div>'+kaart+'</div><div>'+telling+'</div></div>':
+      '<p class="hint">Nog geen stand ingevuld.'+(ADMIN?'':' De beheerder werkt deze wekelijks bij.')+'</p>')+
+    beheer+'</div>';
+}
+function vLive(){
+  var laatst=['hk','pk'].map(function(ck){return S.comps[ck].live&&S.comps[ck].live.updated;})
+    .filter(Boolean).sort().pop();
+  var uitleg;
+  if(!ADMIN){
+    uitleg='<p class="hint">De ranglijst van beide competities, naast ieders voorspelling. '+
+      'De app werkt dit zelf bij.</p>';
+  }else if(S.autoAan){
+    uitleg='<p class="hint">De app werkt deze standen zelf bij, elke ochtend, rechtstreeks bij hockeystanden.nl. '+
+      'Je hoeft hier niets te doen.'+
+      (laatst?' Laatst bijgewerkt: '+h(datumTekst(laatst))+'.':' Zodra er iets gespeeld is verschijnt het hier.')+'</p>';
+  }else{
+    uitleg='<p class="hint">Deze standen kunnen zichzelf bijhouden. Zet dat aan bij '+
+      '<b>Info → Automatisch bijwerken</b>, dan haalt de app ze elke ochtend op bij hockeystanden.nl.'+
+      (laatst?' Laatst bijgewerkt: '+h(datumTekst(laatst))+'.':'')+'</p>'+
+      '<div class="row"><button class="btn pri" data-adm="haalVoorstellen">Nu ophalen</button></div>';
+  }
+  return '<div class="card"><h2>Hoe de competitie er nu voor staat</h2>'+uitleg+
+    (ADMIN&&VOORSTEL?agendaBlok():'')+'</div>'+
+    liveBlock('hk')+liveBlock('pk');
+}
+
+/* ================= werkelijke eindstand ================= */
+function resultBlock(ck){
+  var c=S.comps[ck], r=c.result, seen={}, dup={};
+  r.standing.forEach(function(t,i){if(!t)return;if(seen[t]!==undefined){dup[i]=1;dup[seen[t]]=1;}else seen[t]=i;});
+  function cell(i){
+    return ADMIN
+      ? '<td><select data-a="rstanding" data-c="'+ck+'" data-i="'+i+'" class="'+(dup[i]?'dup':'')+'">'+teamOpts(c.teams,r.standing[i])+'</select></td>'
+      : '<td><span class="ro">'+(h(r.standing[i])||'–')+'</span></td>';
+  }
+  function bonus(label,key,isTeam){
+    var v=r[key];
+    var input = ADMIN
+      ? (isTeam?'<select data-a="r'+key+'" data-c="'+ck+'">'+teamOpts(c.teams,v)+'</select>'
+               :'<input value="'+h(v)+'" data-a="r'+key+'" data-c="'+ck+'">')
+      : '<b>'+(h(v)||'–')+'</b>';
+    return '<div class="kv"><label>'+label+'</label>'+input+'</div>';
+  }
+  return '<div class="card"><h2>'+h(c.name)+' <span class="tag">werkelijke uitslag</span></h2>'+
+    '<div class="scroll"><table><tr><th class="name">Eindstand</th>'+
+    [1,2,3,4,5,6,7,8,9,10,11,12].map(function(i){return '<th>Pos '+i+'</th>';}).join('')+'</tr>'+
+    '<tr><td class="name">Team</td>'+r.standing.map(function(_,i){return cell(i);}).join('')+'</tr></table></div>'+
+    '<h3>Bonusvragen</h3><div class="grid2">'+
+    bonus(ck==='hk'?'Kampioen (play-offs)':'Kampioen','kampioen',true)+
+    bonus('Winterkampioen','winter',true)+bonus('Topscorer','topscorer',false)+
+    bonus('Minste tegengoals','minsteTegen',true)+bonus('Meest scorende team','meestScorend',true)+
+    (ck==='hk'?bonus('Speler van het seizoen','speler',false):'')+
+    '</div></div>';
+}
+function vResult(){
+  return '<div class="card"><h2>Werkelijke eindstand</h2><p class="hint">'+
+    (ADMIN?'Jij bent beheerder, dus jij vult dit in. Zodra hier iets staat, verrekenen alle ranglijst- en bonuspunten zich automatisch.'
+          :'Alleen de beheerder ('+h(S.admin)+') vult dit in.')+'</p></div>'+
+    resultBlock('hk')+resultBlock('pk');
+}
+
+/* ================= info / beheer ================= */
+/* wat de agenda voorstelt, nog niet opgeslagen */
+var VOORSTEL=null;
+
+function agendaBlok(){
+  var v=VOORSTEL;
+  if(!v)return '<p class="hint">Nog niets opgehaald.</p>';
+  if(v.bezig)return '<p class="hint">Bezig met ophalen, dit duurt een paar tellen…</p>';
+  var iets=false;
+  var blokken=(v.blokken||[]).map(function(b,bi){
+    if(b.uitslagen.length||b.ranglijst.length)iets=true;
+    var u=b.uitslagen.length
+      ? '<div class="beurtvolgorde">'+b.uitslagen.map(function(x,i){
+          return '<div class="beurtrij" style="grid-template-columns:auto 1fr auto">'+
+            '<input type="checkbox" class="vk-u" data-b="'+bi+'" data-i="'+i+'" checked>'+
+            '<span>Ronde '+(x.ronde+1)+' · '+h(x.wedstrijd)+'</span><b>'+h(x.uitslag)+'</b></div>';
+        }).join('')+'</div>'
+      : '<p class="hint">Geen nieuwe uitslag voor een wedstrijd van de week.</p>';
+    var r=b.ranglijst.length
+      ? '<label class="row" style="margin:8px 0"><input type="checkbox" class="vk-r" data-b="'+bi+'" checked> '+
+        '<span class="mini">deze ranglijst overnemen</span></label>'+
+        '<div class="rang">'+b.ranglijst.map(function(t,i){
+          return '<div class="rangrij'+(i===0?' kop':'')+'"><span class="nr">'+(i+1)+'</span><span>'+h(t)+'</span></div>';
+        }).join('')+'</div>'
+      : '<p class="hint">Nog geen ranglijst gevonden.</p>';
+    return '<h3>'+h(b.naam)+'</h3><p class="hint">'+b.gespeeld+' van '+b.gevonden+
+      ' gevonden wedstrijden zijn gespeeld.</p>'+u+r;
+  }).join('');
+  return blokken+
+    (v.waarschuwing?'<p class="hint warn">'+h(v.waarschuwing)+'</p>':'')+
+    (iets?'<button class="btn pri" data-adm="neemOver" style="margin-top:12px">Overnemen</button>'
+        :'<p class="hint">Er valt nu niets over te nemen.</p>');
+}
+
+function haalOp(){
+  VOORSTEL={bezig:true}; render();
+  google.script.run.withSuccessHandler(function(res){
+    if(res&&res.error){VOORSTEL=null;render();return toast(res.error,true);}
+    VOORSTEL=res; render(); toast('Opgehaald');
+  }).withFailureHandler(function(){
+    VOORSTEL=null; render(); toast('Ophalen mislukt',true);
+  }).haalVoorstellen(ME,PIN);
+}
+
+function vInfo(){
+  var pl={positie:'Team op juiste plek ranglijst',
+    kampioen:'Kampioen Hoofdklasse (play-offs)',kampioenPk:'Kampioen Promotieklasse (bovenop plek 1)',
+    winter:'Winterkampioen',topscorer:'Topscorer competitie',speler:'Speler van het seizoen (Hoofdklasse)',
+    minsteTegen:'Minste tegengoals (team)',meestScorend:'Meest scorende team',exact:'Exacte uitslag WVDW',
+    scoreWin:'Eén teamscore + juiste winnaar',win:'Alleen juiste winnaar of gelijkspel',
+    score:'Eén teamscore, winnaar fout'};
+  var regels='<div class="card"><h2>Spelregels</h2>'+
+    Object.keys(pl).map(function(k){return '<div class="kv"><label>'+pl[k]+'</label><b>'+S.pts[k]+'</b></div>';}).join('')+
+    '<p class="hint">Je kunt een voorspelling voor de wedstrijd van de week aanpassen tot de beheerder de uitslag invoert. Daarna gaat hij op slot.</p>'+
+    '<p class="hint">Versie '+(S.versie||'?')+'</p></div>';
+  if(!ADMIN)return regels+
+    '<div class="card"><h2>Beurtvolgorde</h2><div class="beurtvolgorde">'+
+    (S.beurten||[]).map(function(p,i){
+      return '<div class="beurtrij" style="grid-template-columns:26px 1fr"><span class="mini">'+(i+1)+'</span><b'+
+        (p===ME?' style="color:var(--acc)"':'')+'>'+h(p)+'</b></div>';
+    }).join('')+'</div>'+
+    '<p class="hint">Zo rouleert het kiezen van de wedstrijd van de week. Alleen '+h(S.admin)+' kan de volgorde aanpassen.</p></div>'+
+    '<div class="card"><h2>Beheer</h2><p class="hint">'+h(S.admin)+' is beheerder en voert de uitslagen in.</p></div>';
+  var nu=huidigeRonde();
+  function lokaleTijd(iso){
+    if(!iso)return '';
+    var d=new Date(iso);
+    return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)+
+      'T'+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+  }
+  var sluiten='<div class="card"><h2>Sluitmomenten speelronde '+(nu+1)+'</h2>'+
+    '<p class="hint">De app rekent zelf de vrijdag vóór de speeldag uit, om 18:00. Speelt een ronde doordeweeks, '+
+    'dan wordt dat hieronder rood gemeld en zet je hem zelf goed. Leegmaken zet hem terug op de kalender.</p>'+
+    ['hk','pk'].map(function(ck){
+      var c=S.comps[ck], d=speeldatum(ck,nu), dl=deadlineVoor(ck,nu);
+      var eigen=!!(c.matches[nu]&&c.matches[nu].deadline);
+      return '<div style="margin-top:12px"><div class="mini"><b>'+h(c.name)+'</b> · '+
+        (d?h(datumTekst(d.toISOString())):'geen speeldatum')+
+        (wijktAf(ck,nu)?' <span class="warn">speelt doordeweeks</span>':'')+
+        (eigen?' <span class="tag">handmatig gezet</span>':'')+'</div>'+
+        '<div class="row" style="margin-top:6px">'+
+        '<input type="datetime-local" id="dl-'+ck+'" value="'+h(lokaleTijd(dl))+'" style="max-width:220px">'+
+        '<button class="btn pri" data-adm="setDeadline" data-arg="'+ck+'">Vastzetten</button>'+
+        (eigen?'<button class="btn" data-adm="wisDeadline" data-arg="'+ck+'">Terug naar kalender</button>':'')+
+        '</div></div>';
+    }).join('')+'</div>';
+
+  var bekerLijst=(S.bekers||[]).slice().sort(function(a,b){return a.seizoen<b.seizoen?1:-1;}).map(function(b){
+    return '<div class="beurtrij" style="grid-template-columns:110px 1fr auto">'+
+      '<span class="mini">'+h(b.seizoen)+'</span><b>'+h(b.winnaar)+' 🏆</b>'+
+      '<button class="btn danger" data-adm="verwijderBeker" data-arg="'+h(b.seizoen)+'">×</button></div>';
+  }).join('')||'<p class="hint">Nog geen bekertjes.</p>';
+
+  var spelerOpties=S.players.map(function(p){return '<option>'+h(p)+'</option>';}).join('');
+
+  var bekers='<div class="card"><h2>Bekertjes</h2>'+
+    '<div class="beurtvolgorde">'+bekerLijst+'</div>'+
+    '<div class="row" style="margin-top:8px">'+
+    '<input id="bk-seizoen" placeholder="2025-2026" style="max-width:130px">'+
+    '<select id="bk-winnaar" style="max-width:150px">'+spelerOpties+'</select>'+
+    '<button class="btn" data-adm="setBeker">Toevoegen</button></div>'+
+    '<h3>Nieuw seizoen starten</h3>'+
+    '<p class="hint">Wist alle voorspellingen, uitslagen en standen. Spelers, pincodes, beurtvolgorde en bekertjes blijven staan.</p>'+
+    '<div class="row" style="margin-top:8px">'+
+    '<input id="ns-naam" placeholder="2027-2028" style="max-width:130px">'+
+    '<select id="ns-winnaar" style="max-width:190px"><option value="">winnaar '+h(S.season)+'…</option>'+spelerOpties+'</select>'+
+    '<button class="btn danger" data-adm="nieuwSeizoen">Nieuw seizoen</button></div></div>';
+
+  var terug='<div class="card"><h2>Ongedaan maken</h2>'+
+    '<p class="hint">Iets fout gegaan? Hiermee ga je terug naar de toestand van vlak vóór de laatste wijziging. Werkt één stap terug.</p>'+
+    '<button class="btn" data-adm="herstelVorige" style="margin-top:8px">Laatste wijziging terugdraaien</button></div>';
+
+  var agenda='<div class="card"><h2>Automatisch bijwerken <span class="tag">beide competities</span></h2>'+
+    '<p class="hint">De app haalt de uitslagen en de officiële ranglijst op bij hockeystanden.nl, voor de Hoofdklasse én de Promotieklasse. '+
+    'Je ziet eerst wat hij gevonden heeft en bepaalt zelf wat je overneemt. Een uitslag die al ingevuld staat blijft staan.</p>'+
+    '<div class="row" style="margin:10px 0">'+
+    '<button class="btn '+(S.autoAan?'danger':'pri')+'" data-adm="autoBijwerken">'+
+      (S.autoAan?'Zelf bijhouden uitzetten':'Laat de app het zelf bijhouden')+'</button>'+
+    '<button class="btn" data-adm="haalVoorstellen">Kijk nu wat er bekend is</button></div>'+
+    '<p class="hint">'+(S.autoAan
+      ? 'Staat aan. Elk uur kijkt de app of er een wedstrijd 2,5 uur geleden begon en haalt dan de uitslag op. Lukt dat niet, dan probeert hij het volgende uur opnieuw, tot drie dagen erna. De ranglijsten ververst hij elke ochtend.'
+      : 'Staat uit. Je haalt zelf op met de knop hiernaast.')+'</p>'+
+    (S.autoBericht?'<p class="hint">Laatst vanzelf gedaan: '+h(S.autoBericht)+'</p>':'')+
+    agendaBlok()+'</div>';
+
+  var herinner='<div class="card"><h2>Herinnering</h2>'+
+    '<p class="hint">Elke ochtend kijkt de app of er binnen 36 uur een sluitmoment aankomt. Wie dan nog niets heeft ingevuld krijgt een mailtje. '+
+    'Per speelronde gaat er hooguit één herinnering uit, niemand wordt dus doodgemaild.</p>'+
+    '<h3>E-mailadressen</h3>'+
+    S.players.map(function(p){
+      return '<div class="row" style="margin-bottom:6px"><b style="min-width:90px">'+h(p)+'</b>'+
+        '<input id="em-'+h(p)+'" value="'+h((S.emails||{})[p]||'')+'" placeholder="naam@voorbeeld.nl" style="flex:1;max-width:260px">'+
+        '<button class="btn" data-adm="setEmail" data-arg="'+h(p)+'">Opslaan</button></div>';
+    }).join('')+
+    '<p class="hint">Zonder adres krijgt iemand geen mail, de rest wel.</p>'+
+    '<h3>Link in de mail</h3>'+
+    '<div class="row"><input id="appurl" value="'+h(S.appUrl||'')+'" placeholder="de link die je met de poule deelt" style="flex:1">'+
+    '<button class="btn" data-adm="setAppUrl">Opslaan</button></div>'+
+    '<div class="row" style="margin-top:14px">'+
+    '<button class="btn '+(S.herinnerAan?'danger':'pri')+'" data-adm="herinnering">'+
+      (S.herinnerAan?'Herinnering uitzetten':'Herinnering aanzetten')+'</button>'+
+    '<button class="btn" data-adm="testHerinnering">Stuur mij een test</button></div>'+
+    '<p class="hint">'+(S.herinnerAan?'Staat aan. De app kijkt elke ochtend rond negen uur.':'Staat uit.')+'</p></div>';
+
+  return regels+sluiten+agenda+herinner+bekers+terug+
+    '<div class="card"><h2>Beheer <span class="tag me">alleen jij</span></h2>'+
+    (['hk','pk'].every(function(ck){return S.comps[ck].dicht;})
+      ? '<p class="hint">Beide competities zijn begonnen, dus alle eindstand-voorspellingen staan vast. Daar kan niemand meer aan, jij ook niet.</p>'
+      : '<div class="row"><button class="btn" data-adm="togglePredsLock">'+
+        (S.predsLocked?'Eindstand-voorspellingen weer openzetten':'Nu al op slot zetten')+'</button></div>'+
+        '<p class="hint">Elke competitie gaat vanzelf op slot zodra zijn eerste wedstrijd begint. '+
+        ['hk','pk'].map(function(ck){
+          var d=speeldatum(ck,0);
+          return h(S.comps[ck].name)+': '+(S.comps[ck].dicht?'al op slot':(d?h(datumTekst(d.toISOString())):'geen datum'));
+        }).join(' · ')+'. Met deze knop doe je het eerder.</p>')+
+    '<h3>Beurtvolgorde wedstrijd van de week</h3>'+
+    '<div class="beurtvolgorde">'+
+      (S.beurten||[]).map(function(p,i){
+        return '<div class="beurtrij"><span class="mini">'+(i+1)+'</span><b>'+h(p)+'</b>'+
+          '<button class="btn" data-adm="beurtOmhoog" data-arg="'+i+'"'+(i===0?' disabled':'')+'>&uarr;</button>'+
+          '<button class="btn" data-adm="beurtOmlaag" data-arg="'+i+'"'+(i===(S.beurten.length-1)?' disabled':'')+'>&darr;</button></div>';
+      }).join('')+'</div>'+
+    '<p class="hint">Speelronde 1 is voor nummer 1, ronde 2 voor nummer 2, enzovoort. Na de laatste begint het rijtje opnieuw.</p>'+
+    '<h3>Spelers</h3>'+
+    S.players.map(function(p){return '<div class="row" style="margin-bottom:6px"><b style="min-width:90px">'+h(p)+'</b>'+
+      '<span class="mini">'+(S.pins[p]?'pincode ingesteld':'nog niet ingelogd')+'</span><div style="flex:1"></div>'+
+      '<button class="btn" data-adm="resetPin" data-arg="'+h(p)+'">Pincode wissen</button>'+
+      (p===S.admin?'':'<button class="btn danger" data-adm="removePlayer" data-arg="'+h(p)+'">Verwijderen</button>')+
+      '</div>';}).join('')+
+    '<div class="row" style="margin-top:8px"><input id="newp" placeholder="Nieuwe speler" style="max-width:200px">'+
+    '<button class="btn" data-adm="addPlayer">Toevoegen</button></div>'+
+    '<h3>Teams</h3><div class="grid2">'+['hk','pk'].map(function(ck){
+      return '<div><div class="mini">'+h(S.comps[ck].name)+'</div>'+
+        '<textarea id="teams-'+ck+'" rows="12" style="width:100%;background:var(--bg);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:8px;font:inherit;font-size:13px">'+
+        h(S.comps[ck].teams.join('\n'))+'</textarea>'+
+        '<button class="btn" data-adm="setTeams" data-arg="'+ck+'" style="margin-top:6px">Opslaan</button></div>';
+    }).join('')+'</div></div>';
+}
+
+/* ================= events ================= */
+function onInput(e){
+  var el=e.target.closest('[data-a]'); if(!el||el.tagName==='SELECT')return;
+  var a=el.dataset.a, ck=el.dataset.c, p=el.dataset.p, i=Number(el.dataset.i), v=el.value;
+  if(el.dataset.half){
+    v=scoreUit(el); scoreDoor(el);
+    // null betekent: pas één van de twee cijfers ingevuld, nog even wachten.
+    if(v===null)return;
+  }
+  if(a==='mlabel'){patch(['comps',ck,'matches',i,'label'],v);return;}
+  if(a==='mactual'){patch(['comps',ck,'matches',i,'actual'],v);return;}
+  if(a==='pred'){
+    patch(['comps',ck,'preds',p,'wvdw',i],v);
+    var vak=el.closest('.sc');
+    var box=(vak||el).nextElementSibling, act=S.comps[ck].matches[i].actual, pt=matchPoints(v,act,S.pts);
+    if(box){box.className='pts '+(pt>=10?'p10':pt>=7?'p7':pt>=5?'p5':pt>=2?'p2':'p0');
+      box.innerHTML=(act&&parseScore(act))?pt:'&nbsp;';}
+    return;
+  }
+  if(a==='topscorer'){patch(['comps',ck,'preds',p,'topscorer'],v);return;}
+  if(a==='rtopscorer'){patch(['comps',ck,'result','topscorer'],v);return;}
+}
+function onChange(e){
+  var el=e.target.closest('[data-a]'); if(!el)return;
+  var a=el.dataset.a, ck=el.dataset.c, p=el.dataset.p, i=Number(el.dataset.i), v=el.value;
+  if(a==='zoekmatch'){
+    if(!String(v).trim())return;
+    var pp=splitsMatch(ck,v);
+    if(!pp){el.classList.add('dup');return toast('Kies een wedstrijd uit de lijst',true);}
+    el.classList.remove('dup');
+    patch(['comps',ck,'matches',i,'home'],pp[0]);
+    patch(['comps',ck,'matches',i,'away'],pp[1]);
+    render();toast(pp[0]+' - '+pp[1]);
+    return;
+  }
+  if(a==='lstanding'){patch(['comps',ck,'live','standing',i],v);render();return;}
+  if(a==='standing'){patch(['comps',ck,'preds',p,'standing',i],v);render();return;}
+  if(a==='kampioen'||a==='winter'||a==='minsteTegen'||a==='meestScorend'||a==='speler'){patch(['comps',ck,'preds',p,a],v);render();return;}
+  if(a==='rspeler'){patch(['comps',ck,'result','speler'],v);render();return;}
+  if(a==='rkampioen'){patch(['comps',ck,'result','kampioen'],v);render();return;}
+  if(a==='rstanding'){patch(['comps',ck,'result','standing',i],v);render();return;}
+  if(a==='rwinter'){patch(['comps',ck,'result','winter'],v);render();return;}
+  if(a==='rminsteTegen'){patch(['comps',ck,'result','minsteTegen'],v);render();return;}
+  if(a==='rmeestScorend'){patch(['comps',ck,'result','meestScorend'],v);render();return;}
+  if(a==='mactual'){setTimeout(function(){if(!sending&&!aanHetTypen())render();},900);return;}
+}
+function onClick(e){
+  // sprong vanuit de actiebalk
+  var ga=e.target.closest('[data-ga]');
+  if(ga){tab=ga.dataset.ga;render();window.scrollTo(0,0);return;}
+  // speelronde bladeren op smal scherm
+  var rk=e.target.closest('[data-ronde]');
+  if(rk){
+    rondeVenster = rk.dataset.ronde==='nu' ? null : Number(rk.dataset.ronde);
+    render();return;
+  }
+  // wedstrijd kiezen openen of sluiten
+  var kz=e.target.closest('[data-kies]');
+  if(kz){
+    var vak=document.getElementById('kiezer-'+kz.dataset.c);
+    if(vak)vak.innerHTML = kz.dataset.kies==='dicht' ? '' : matchKiezer(kz.dataset.c,Number(kz.dataset.kies));
+    return;
+  }
+  // een wedstrijd uit de lijst kiezen
+  var zt=e.target.closest('[data-zet]');
+  if(zt){
+    var paar=splitsMatch(zt.dataset.c,zt.dataset.zet);
+    if(!paar)return toast('Die wedstrijd herken ik niet',true);
+    var ri=Number(zt.dataset.i);
+    patch(['comps',zt.dataset.c,'matches',ri,'home'],paar[0]);
+    patch(['comps',zt.dataset.c,'matches',ri,'away'],paar[1]);
+    render();
+    toast(paar[0]+' - '+paar[1]);
+    return;
+  }
+  // puntenuitleg
+  var u=e.target.closest('[data-uitleg]');
+  if(u){
+    var vak=document.getElementById('uitleg-'+u.dataset.c);
+    if(vak)vak.innerHTML=puntenUitleg(u.dataset.c,u.dataset.p,Number(u.dataset.i));
+    return;
+  }
+  var b=e.target.closest('[data-adm]'); if(!b)return;
+  var act=b.dataset.adm, arg=b.dataset.arg||null;
+  if(act==='haalVoorstellen')return haalOp();
+  if(act==='neemOver'){
+    if(!VOORSTEL||VOORSTEL.bezig||!VOORSTEL.blokken)return;
+    var blokken=VOORSTEL.blokken.map(function(b){return {comp:b.comp,uitslagen:[],ranglijst:[]};});
+    [].slice.call(document.querySelectorAll('.vk-u:checked')).forEach(function(c){
+      var b=Number(c.dataset.b), i=Number(c.dataset.i);
+      var u=VOORSTEL.blokken[b]&&VOORSTEL.blokken[b].uitslagen[i];
+      if(u)blokken[b].uitslagen.push(u);
+    });
+    [].slice.call(document.querySelectorAll('.vk-r:checked')).forEach(function(c){
+      var b=Number(c.dataset.b);
+      if(VOORSTEL.blokken[b])blokken[b].ranglijst=VOORSTEL.blokken[b].ranglijst.slice();
+    });
+    var totaal=blokken.reduce(function(n,b){return n+b.uitslagen.length+b.ranglijst.length;},0);
+    if(!totaal)return toast('Er staat niets aangevinkt',true);
+    arg={blokken:blokken};
+    VOORSTEL=null;
+  }
+  if(act==='setEmail'){
+    var ev=document.getElementById('em-'+arg);
+    arg={speler:arg,adres:ev?ev.value.trim():''};
+  }
+  if(act==='setAppUrl'){
+    var au=document.getElementById('appurl');
+    arg=au?au.value.trim():'';
+  }
+  if(act==='autoBijwerken'){
+    if(!S.autoAan&&!confirm('De app mag dan zelf uitslagen en ranglijsten overnemen, zonder dat jij ze eerst ziet.\n\nElk uur kijkt hij of er een wedstrijd 2,5 uur geleden begon. Doorgaan?'))return;
+    if(S.autoAan&&!confirm('Het zelf bijhouden uitzetten? Je vult daarna weer met de hand of met de knop hiernaast.'))return;
+    arg=!S.autoAan;
+  }
+  if(act==='herinnering'){
+    if(S.herinnerAan){
+      if(!confirm('De herinnering uitzetten? Er gaan dan geen mailtjes meer uit.'))return;
+    }else if(!confirm('De herinnering aanzetten? De app mag dan namens jou mailtjes sturen naar de poule.'))return;
+    arg=!S.herinnerAan;
+  }
+  if(act==='addPlayer'){arg=document.getElementById('newp').value.trim(); if(!arg)return;}
+  if(act==='removePlayer'&&!confirm('Speler '+arg+' verwijderen? Voorspellingen gaan mee weg.'))return;
+  if(act==='resetPin'&&!confirm('Pincode van '+arg+' wissen? Hij kan dan een nieuwe kiezen.'))return;
+  if(act==='setTeams'){
+    var txt=document.getElementById('teams-'+arg).value;
+    arg={comp:arg,teams:txt.split('\n').map(function(s){return s.trim();}).filter(Boolean)};
+  }
+  if(act==='setProgramma'){
+    var pd=String(arg).split(':'), pv=document.getElementById('prog-'+pd[0]+'-'+pd[1]);
+    if(!pv||!pv.value.trim())return toast('Plak eerst de wedstrijden',true);
+    arg={comp:pd[0],ronde:Number(pd[1]),text:pv.value};
+  }
+  if(act==='wisProgramma'){
+    var wd=String(arg).split(':');
+    if(!confirm('Het programma van deze speelronde leegmaken?'))return;
+    arg={comp:wd[0],ronde:Number(wd[1])};
+  }
+  if(act==='pasteLive'){
+    var box=document.getElementById('paste-'+arg);
+    if(!box||!box.value.trim())return toast('Plak eerst de ranglijst',true);
+    arg={comp:arg,text:box.value};
+  }
+  if(act==='beurtOmhoog'||act==='beurtOmlaag'){
+    var idx=Number(arg), naar=idx+(act==='beurtOmhoog'?-1:1);
+    var lijst=S.beurten.slice();
+    if(naar<0||naar>=lijst.length)return;
+    var tmp=lijst[idx]; lijst[idx]=lijst[naar]; lijst[naar]=tmp;
+    act='setBeurten'; arg=lijst;
+  }
+  if(act==='setDeadline'){
+    var veld=document.getElementById('dl-'+arg);
+    if(!veld||!veld.value)return toast('Kies eerst een datum en tijd',true);
+    arg={ronde:huidigeRonde(),comp:arg,wanneer:new Date(veld.value).toISOString()};
+  }
+  if(act==='wisDeadline'){arg={ronde:huidigeRonde(),comp:arg};}
+  if(act==='setBeker'){
+    var sz=document.getElementById('bk-seizoen'), wn=document.getElementById('bk-winnaar');
+    if(!sz||!sz.value.trim()||!wn||!wn.value)return toast('Vul seizoen en winnaar in',true);
+    arg={seizoen:sz.value.trim(),winnaar:wn.value};
+  }
+  if(act==='verwijderBeker'&&!confirm('Bekertje van '+arg+' weghalen?'))return;
+  if(act==='nieuwSeizoen'){
+    var ns=document.getElementById('ns-naam'), nw=document.getElementById('ns-winnaar');
+    if(!ns||!ns.value.trim())return toast('Geef het nieuwe seizoen een naam',true);
+    if(!confirm('Nieuw seizoen starten?\n\nAlle voorspellingen, uitslagen en standen van '+S.season+
+      ' worden gewist. Spelers, pincodes en bekertjes blijven staan. Dit kun je alleen ongedaan maken met de terugknop.'))return;
+    arg={seizoen:ns.value.trim(),winnaar:nw?nw.value:''};
+  }
+  if(act==='herstelVorige'&&!confirm('Terug naar de vorige toestand? De laatste wijziging wordt teruggedraaid.'))return;
+  if(act==='clearLive'&&!confirm('De actuele stand leegmaken?'))return;
+  if(act==='liveNaarEindstand'&&!confirm('De huidige stand overnemen als definitieve eindstand? Hierna tellen alle ranglijst- en bonuspunten mee.'))return;
+  setStatus('bezig…','busy'); b.disabled=true;
+  google.script.run.withSuccessHandler(function(res){
+    b.disabled=false;
+    if(res&&res.error){setStatus('fout','err');toast(res.error,true);return;}
+    S=res.state;setStatus('opgeslagen','ok');render();toast(res.melding||'Bijgewerkt');
+  }).withFailureHandler(function(){b.disabled=false;setStatus('fout','err');toast('Mislukt',true);})
+    .adminAction(ME,PIN,act,arg);
+}
+window.addEventListener('beforeunload',function(e){if(dirty||queue.length){e.preventDefault();e.returnValue='';}});
+boot();
+</script>
+
+<!-- ===== PWA: begin ===== -->
+<script>
+/*
+ * Service worker + "nieuwe versie"-melding.
+ * Een geïnstalleerde app blijft soms dagen open op de achtergrond. Daarom kijken
+ * we bij terugkomen in de app (en elk half uur) of er een nieuwe versie is.
+ * Neemt een nieuwe service worker het over, dan tonen we een balk.
+ * Verversen wacht tot alles is opgeslagen.
+ */
+if ('serviceWorker' in navigator) {
+  var hadSw = !!navigator.serviceWorker.controller; // eerste installatie is geen "update"
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      var kijk = function () { reg.update().catch(function () {}); };
+      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') kijk(); });
+      setInterval(kijk, 30 * 60 * 1000);
+    }).catch(function (e) { console.warn('service worker', e); });
+  });
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (!hadSw) { hadSw = true; return; }
+    if (document.getElementById('hn-update')) return;
+    var b = document.createElement('div');
+    b.id = 'hn-update';
+    b.innerHTML = '<span>Nieuwe versie klaar</span><button type="button">Verversen</button>';
+    b.querySelector('button').onclick = function () {
+      if (typeof queue !== 'undefined' && (queue.length || sending || dirty)) {
+        if (typeof toast === 'function') toast('Even wachten, ik sla nog iets op', true);
+        if (typeof flush === 'function') flush();
+        return;
+      }
+      location.reload();
+    };
+    document.body.appendChild(b);
+  });
+}
+// Bij uitloggen ook de offline-kopie van jouw gegevens van dit toestel halen.
+(function () {
+  var oud = logout;
+  logout = function () {
+    var klaar = function () { oud(); };
+    if (window.caches) caches.delete('hn-api').then(klaar, klaar); else klaar();
+  };
+})();
+</script>
+<!-- ===== PWA: eind ===== -->
+</body>
+</html>
