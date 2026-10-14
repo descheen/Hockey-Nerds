@@ -161,6 +161,19 @@ async function toestel(browser, naam, device, metOffline) {
   });
   check(foutZichtbaar, 'mislukt automatisch ophalen: melding bij Competitie en een taak op het homescherm');
 
+  // 3c4. clublogo's: Voordaan heeft de foto, een logo dat niet laadt valt terug op de badge
+  const logos = await page.evaluate(async () => {
+    const voordaan = clubBadge('Voordaan'), onbekend = clubBadge('Rood-Wit');
+    const box = document.createElement('div'); box.innerHTML = clubBadge('Kampong').replace(/src="[^"]+"/, 'src="https://example.invalid/x.png"').replace('loading="lazy"', '');
+    document.body.appendChild(box);
+    await new Promise((ok) => setTimeout(ok, 1500));
+    const terug = !box.querySelector('img') && !box.firstChild.classList.contains('logo');
+    box.remove();
+    return { foto: /voordaan\.jpg/.test(voordaan) && /foto/.test(voordaan), letters: !/<img/.test(onbekend), terug };
+  });
+  check(logos.foto, 'Voordaan heeft de foto van de aanvoerder als logo');
+  check(logos.letters && logos.terug, 'zonder (werkend) logo: de gekleurde badge met letters');
+
   // 3d. status: offline en weer online
   await page.evaluate(() => window.dispatchEvent(new Event('offline')));
   check(await page.textContent('#status') === 'offline', 'status toont "offline" zonder netwerk');
