@@ -77,8 +77,20 @@ async function toestel(browser, naam, device, metOffline) {
     return { titels: titels.join(','), comps: u.querySelectorAll('.statcomp').length, stats: u.querySelectorAll('.stat').length,
       ranglijst: document.querySelectorAll('details[data-blok="ranglijst"] .statkaart').length };
   });
-  check(blokken.titels === 'Uitsplitsing,Ranglijst,Competitiestand,Bonuspunten' && blokken.comps === 8 && blokken.stats === 24 && blokken.ranglijst === 4,
+  check(blokken.titels === 'Uitsplitsing,Wie voorspelt het best,Ranglijst,Competitiestand,Bonuspunten' && blokken.comps === 8 && blokken.stats === 24 && blokken.ranglijst === 4,
     'stand: uitsplitsing per HK/PK (punten, perfect, rondes), eigen Ranglijst, Competitiestand: ' + JSON.stringify(blokken));
+  const inzicht = await page.evaluate(() => {
+    var a = analyse(), klopt = S.players.every(function (p) { var x = a[p]; return x.toto >= 0 && x.toto <= 100 && x.raak <= 100 && x.exact <= x.n; });
+    var exactSom = S.players.reduce(function (n, p) { return n + a[p].exact; }, 0) === S.players.reduce(function (n, p) { return n + perfecteScores(p); }, 0);
+    openBlok['aanval-hk'] = true; tab = 'live'; compKeuze = 'hk'; render();
+    var stippen = document.querySelectorAll('svg.aanval .tp circle').length, rijen = document.querySelectorAll('.aanlijst li:not(.kop)').length;
+    var labels = [...document.querySelectorAll('svg.aanval .tp text')].map((t) => t.getBBox());
+    var overlap = labels.some((a, i) => labels.some((b, j) => i < j && a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height));
+    openBlok['aanval-hk'] = false; tab = 'stand'; render();
+    return { klopt, exactSom, stippen, rijen, overlap };
+  });
+  check(inzicht.klopt && inzicht.exactSom, 'wie voorspelt het best: percentages geldig, exacte scores gelijk aan Perfect score');
+  check(inzicht.stippen === 12 && inzicht.rijen === 12 && !inzicht.overlap, 'aanval en verdediging: 12 teams, labels overlappen niet: ' + JSON.stringify(inzicht));
   check(tabel.meerBlokken >= 6, `meer: beheer in ${tabel.meerBlokken} inklapbare blokken`);
 
   // 3. elk tabblad: renderen, geen horizontale scroll van de pagina

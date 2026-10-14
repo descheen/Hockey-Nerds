@@ -102,13 +102,14 @@ var HN_API = 'https://script.google.com/macros/s/AKfycbwxuYGREeXE6Ql5wg96HpbYVGQ
 <style>
 /* ================= ontwerp: tokens ================= */
 /* Barlow Condensed (SIL Open Font License, zie fonts/LICENSE-barlow-condensed.txt): de scorebordletter. */
+@font-face{font-family:'Inter';font-style:normal;font-weight:100 900;font-display:swap;src:url(fonts/inter-latin-wght-normal.woff2) format('woff2')}
 @font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/barlow-condensed-latin-600-normal.woff2) format('woff2')}
 @font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/barlow-condensed-latin-700-normal.woff2) format('woff2')}
 @font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:800;font-display:swap;src:url(fonts/barlow-condensed-latin-800-normal.woff2) format('woff2')}
 :root{
   color-scheme:dark;
-  --bg:#06080d; --surface:#0f141e; --surface-2:#161d2b; --surface-3:#1f2839;
-  --line:#26324c; --line-soft:#1a2335;
+  --bg:#090c13; --surface:#10151f; --surface-2:#161c28; --surface-3:#1e2533;
+  --line:#252e40; --line-soft:#1a2130;
   --txt:#eef2f9; --dim:#a3aec4; --faint:#7b88a3;
   --acc:#ff7a1a; --acc-txt:#ff9447; --acc-soft:rgba(255,122,26,.13); --acc-line:rgba(255,122,26,.55); --on-acc:#1c0e03;
   --ok:#3ddba5; --ok-soft:rgba(61,219,165,.12); --bad:#ff6b85; --bad-soft:rgba(255,107,133,.12);
@@ -116,8 +117,7 @@ var HN_API = 'https://script.google.com/macros/s/AKfycbwxuYGREeXE6Ql5wg96HpbYVGQ
   /* oude namen, zodat bestaande opmaak in de code blijft kloppen */
   --panel:var(--surface); --panel2:var(--surface-2); --acc2:var(--ok);
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
-  --r-s:6px; --r-m:8px; --r-l:12px;
-  --cyan:#45d8ff; --glow:0 0 18px rgba(255,122,26,.45);
+  --r-s:9px; --r-m:12px; --r-l:16px;
   --t-xs:12px; --t-s:13px; --t-m:15px; --t-l:17px; --t-xl:22px; --t-xxl:32px;
   --tik:44px; --balk:58px;
   --display:'Barlow Condensed','Arial Narrow',-apple-system,sans-serif;
@@ -696,68 +696,88 @@ details.blok summary b{font-family:var(--display);font-weight:700;font-size:20px
 /* login */
 .login.veld:before{top:calc(var(--top) + 2vh);right:50%;margin-right:-190px;opacity:.06}
 
-/* ===== HUD: scherper, strakker, een tikje toekomst ===== */
-body{background:
-  radial-gradient(900px 520px at 90% -12%,rgba(255,122,26,.11),transparent 62%),
-  radial-gradient(700px 520px at -15% 35%,rgba(69,216,255,.06),transparent 60%),
-  linear-gradient(rgba(140,170,220,.045) 1px,transparent 1px) 0 0/26px 26px,
-  linear-gradient(90deg,rgba(140,170,220,.045) 1px,transparent 1px) 0 0/26px 26px,
-  var(--bg);background-attachment:fixed}
-.topbar{background:rgba(6,8,13,.78);border-bottom:0}
-.topbar:after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(255,122,26,.6) 20%,rgba(69,216,255,.35) 75%,transparent)}
-.merk{font-family:var(--display);font-size:22px;text-transform:uppercase;letter-spacing:.06em}
-.merk b{text-shadow:var(--glow)}
-.tabbar{background:rgba(6,8,13,.88);border-top:1px solid rgba(255,255,255,.06)}
-#nav button.on:before{top:0;width:30px;height:2px;margin-left:-15px;border-radius:0 0 2px 2px;background:var(--acc);box-shadow:0 0 12px 1px rgba(255,122,26,.8);animation:none}
-#nav button.on svg{filter:drop-shadow(0 0 7px rgba(255,122,26,.65))}
-.comptabs button.on:after{left:30%;right:30%;height:2px;border-radius:0;box-shadow:0 0 12px rgba(255,122,26,.8)}
+/* ===== verfijnd: rustig, precies, premium. Oranje alleen waar het telt. ===== */
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+  font-feature-settings:'cv11','ss01';letter-spacing:-.005em;
+  background:radial-gradient(120% 40% at 50% -8%,rgba(120,150,210,.08),transparent 60%) no-repeat,var(--bg)}
+.topbar{background:rgba(9,12,19,.82);border-bottom:1px solid var(--line-soft)}
+.tabbar{background:rgba(9,12,19,.9);border-top:1px solid var(--line-soft)}
+.merk{font-size:21px;letter-spacing:.02em}
+#nav button{font-weight:600}
+#nav button.on:before{top:6px;width:52px;height:30px;margin-left:-26px;border-radius:9px;background:rgba(255,122,26,.12)}
+.comptabs button{font-family:inherit;font-size:15px;font-weight:600;text-transform:none;letter-spacing:-.005em}
+.comptabs button.on:after{left:28%;right:28%;height:2px;border-radius:2px}
 
-.card,details.blok{background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,0) 120px),var(--surface);
-  border:1px solid var(--line-soft);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 30px -18px rgba(0,0,0,.9)}
+/* koppen: één redactionele kop per scherm, de rest is Inter */
+.paginakop h1{font-size:clamp(30px,10vw,38px);letter-spacing:.01em;max-width:100%}
 .paginakop{flex-wrap:wrap;row-gap:0}
-.paginakop h1{font-size:clamp(30px,10.5vw,40px);letter-spacing:.02em;max-width:100%;background:linear-gradient(180deg,#fff 30%,#9fb0cc);-webkit-background-clip:text;background-clip:text;color:transparent}
-.paginakop .sub{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:13px;color:var(--faint)}
-.sectie{display:flex;align-items:center;font-size:14px;letter-spacing:.2em}
-.sectie:before{width:6px;height:6px;border-radius:1px;transform:rotate(45deg);margin:0 10px 0 2px;box-shadow:var(--glow)}
-.sectie:after{content:'';flex:1;height:1px;margin-left:12px;background:linear-gradient(90deg,var(--line),transparent)}
+.paginakop .sub{font-size:var(--t-s);color:var(--faint)}
+.card h2{font-family:inherit;font-size:17px;font-weight:650;letter-spacing:-.015em}
+details.blok summary b{font-family:inherit;font-size:16px;font-weight:650;letter-spacing:-.015em}
+details.blok summary small{font-size:var(--t-s);margin-top:2px}
+.sectie{font-family:inherit;font-size:11.5px;font-weight:650;letter-spacing:.1em;color:var(--faint);margin-top:28px}
+.sectie:before{width:3px;height:12px;border-radius:2px;margin:-2px 8px 0 0}
+.sectie .na{letter-spacing:.06em}
 
-.btn{border-radius:var(--r-s);font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
-  background:rgba(255,255,255,.03);border-color:var(--line)}
-.btn:active{background:var(--surface-3)}
-.btn.pri{border:0;color:var(--on-acc);background:linear-gradient(100deg,#ffa04d,#ff7a1a 45%,#ff5a1f);
-  clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);border-radius:0}
-.btn.link{font-family:inherit;text-transform:none;letter-spacing:0;font-size:var(--t-m)}
-.btn.mini{font-size:15px}
-input,select,textarea{background:rgba(0,0,0,.35)}
-input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(69,216,255,.14),0 0 16px rgba(69,216,255,.18)}
-.seg{border-radius:var(--r-m)}
-.seg button{border-radius:var(--r-s);font-family:var(--display);font-size:15px;text-transform:uppercase;letter-spacing:.06em}
-.seg button.on{box-shadow:inset 0 -2px 0 var(--acc),inset 0 1px 0 rgba(255,255,255,.05)}
-.tag{border-radius:4px;font-family:var(--display);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+/* vlakken: dunne lijn, geen schaduwgedoe */
+.card,details.blok{background:var(--surface);border:1px solid var(--line-soft);box-shadow:none}
+.hero{border-radius:var(--r-l);border:1px solid var(--line);background:linear-gradient(160deg,#151d2c,var(--surface) 65%)}
+.hero.actie{border-color:rgba(255,122,26,.4);background:linear-gradient(160deg,#21170f,#141720 55%,var(--surface))}
+.lrow{border-radius:var(--r-m);background:var(--surface-2)}
+.lrow.mine{box-shadow:inset 2px 0 0 var(--acc);background:linear-gradient(90deg,rgba(255,122,26,.09),var(--surface-2) 55%)}
+.statkaart{border:1px solid transparent}.statkaart.mine{border-color:rgba(255,122,26,.35)}
+.stat{background:var(--bg);border-radius:var(--r-s)}
+.stat b{font-family:inherit;font-weight:700;font-size:18px;letter-spacing:-.02em}
 
-.hero{border-radius:14px;border:1px solid transparent;
-  background:linear-gradient(155deg,#1a2234,var(--surface) 70%) padding-box,
-    linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.03) 40%,rgba(69,216,255,.25)) border-box}
-.hero.actie{background:linear-gradient(155deg,#2a1608 0%,#16100c 40%,var(--surface) 85%) padding-box,
-    linear-gradient(135deg,var(--acc),rgba(255,122,26,.12) 45%,rgba(69,216,255,.4)) border-box;
-  box-shadow:0 0 40px -14px rgba(255,122,26,.55)}
-.herokop .ronde{letter-spacing:.02em}
-.lrow{border-radius:var(--r-m);background:linear-gradient(90deg,var(--surface-2),rgba(22,29,43,.6))}
-.lrow.mine{box-shadow:inset 2px 0 0 var(--acc),-6px 0 18px -10px rgba(255,122,26,.9)}
-.ptot,.trede .ppt{text-shadow:0 0 18px rgba(255,255,255,.12)}
-.blokje{border-radius:6px 6px 2px 2px;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 26px -8px currentColor}
-.t1 .blokje{box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 0 34px -6px rgba(255,204,85,.55)}
-.av{box-shadow:0 0 0 2px rgba(255,255,255,.08),0 0 14px -4px var(--k)}
-.badge{border-radius:12px}
-.rondekaart{border-radius:var(--r-l)}
-.strij.zone:before{box-shadow:0 0 10px rgba(255,122,26,.8)}
-button.taak:first-child:not(.let){background:linear-gradient(100deg,#ffa04d,#ff7a1a 45%,#ff5a1f);border-radius:0;
-  clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
-button.taak{font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:.03em}
-.sc input{border-radius:8px;background:rgba(0,0,0,.45);box-shadow:inset 0 2px 8px rgba(0,0,0,.6)}
-.sc.groot input{border-radius:10px}
-.sc input[value]:not([value=""]){border-color:rgba(255,122,26,.55);color:#fff;text-shadow:0 0 14px rgba(255,122,26,.55)}
+/* cijfers: Inter, tabulair, strak */
+.ptot,.pos,.trede .ppt,.strij .pt,.strij .nr{font-family:inherit;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.ptot{font-size:24px;font-weight:750}.pos{font-size:17px;font-weight:700}
+.trede .ppt{font-size:26px;font-weight:750}
+.strij .pt{font-size:16px;font-weight:750}.strij .nr{font-size:14px;font-weight:700}
+
+/* knoppen en invoer */
+.btn{border-radius:var(--r-s);font-weight:600;letter-spacing:-.005em}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.btn.pri:active{background:#f06d10}
+button.taak{border-radius:var(--r-m);font-weight:650}
+.seg{border-radius:var(--r-m)}.seg button{border-radius:var(--r-s);font-weight:600}
+.tag{border-radius:6px;font-weight:650;letter-spacing:.01em}
+input:focus,select:focus,textarea:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(255,122,26,.16)}
+.sc input{border-radius:var(--r-m)}
+.av{box-shadow:0 0 0 2px rgba(255,255,255,.06)}
+.blokje{border-radius:8px 8px 3px 3px}
+
+/* poule-analyse */
+.ankop{margin:0 0 12px;color:var(--dim);font-size:var(--t-s);line-height:1.5}.ankop b{color:var(--txt)}
+.analyse{display:grid;gap:4px}
+.anrij{display:grid;grid-template-columns:minmax(0,1fr) repeat(4,52px);align-items:center;gap:4px;min-height:48px;padding:4px 8px;border-radius:var(--r-m);background:var(--surface-2)}
+.anrij.mine{box-shadow:inset 2px 0 0 var(--acc)}
+.anrij.kop{min-height:24px;background:none;font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.anrij .wie{display:flex;align-items:center;gap:8px;min-width:0;font-weight:600}
+.anrij .wie span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.anw{position:relative;text-align:right;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em;padding-bottom:4px}
+.anrij.kop .anw{font-weight:650;letter-spacing:.06em;padding:0}
+.anw i{font-style:normal;color:var(--faint);font-weight:600;font-size:11px;margin-left:1px}
+.anw em{position:absolute;right:0;bottom:0;height:2px;width:calc(var(--w) * .44);max-width:44px;border-radius:2px;background:var(--line)}
+.anw.top{color:var(--acc-txt)}.anw.top em{background:var(--acc)}
+
+/* aanval en verdediging */
+.aanval{display:block;width:100%;height:auto;margin:4px 0 8px}
+.aanval .ras line{stroke:var(--line-soft)}
+.aanval text{fill:var(--faint);font-size:10px;font-weight:600;font-family:inherit}
+.aanval .gem{stroke:var(--line);stroke-dasharray:3 4}
+.aanval .hk{fill:var(--faint);opacity:.6;font-size:9.5px;letter-spacing:.04em;text-transform:uppercase}
+.aanval .as{fill:var(--dim);font-size:10px}
+.aanval .tp circle{fill:var(--acc);stroke:var(--surface);stroke-width:2}
+.aanval .tp text{fill:var(--txt);font-size:10px;font-weight:650}
+.aanlijst{list-style:none;margin:8px 0 0;padding:0;display:grid}
+.aanlijst li{display:grid;grid-template-columns:minmax(0,1fr) 56px 56px;align-items:center;min-height:40px;border-top:1px solid var(--line-soft);font-size:var(--t-s)}
+.aanlijst li span{display:flex;align-items:center;gap:8px;min-width:0;font-weight:600}
+.aanlijst li span small{color:var(--faint);font-size:10.5px;font-weight:650;letter-spacing:.06em}
+.aanlijst li b{text-align:right;font-variant-numeric:tabular-nums;font-weight:650}
+.aanlijst li.kop{min-height:28px;border-top:0;font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.aanlijst li.kop span,.aanlijst li.kop b{font-weight:650}
+.strij.kop .pt{font-size:11px;font-weight:650;letter-spacing:.1em}
 
 @media(prefers-reduced-motion:reduce){
   *,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
@@ -1489,6 +1509,7 @@ function vStand(){
     (lr&&iemand?'<p class="hint legenda"><span class="rchip plus">+7</span> laatste speeldag · <span class="beweeg op">▲1</span> gestegen</p>':'')+'</div>'+
     ronde+
     blok('uitsplitsing','Uitsplitsing','waar de punten vandaan komen',uitsplitsing(sc,order))+
+    blok('analyse','Wie voorspelt het best','toto, raak en exact per speler',analyseBlok())+
     blok('ranglijst','Ranglijst','punten voor teams op de juiste plek',ranglijstPuntenBlok(sc,order))+
     blok('rang','Competitiestand','beide competities, '+(eindstandKlaar()?'eindstand':'nu'),ranglijstBlok())+
     blok('bonus','Bonuspunten','als het hierbij zou blijven',bonusProjectieBlok());
@@ -1548,6 +1569,56 @@ function uitsplitsing(sc,order){
   }).join('')+'</div>'+
     '<p class="hint">'+gespeeld+' wedstrijden gespeeld. Goud is de beste van de poule. '+
     'Perfect score telt de exact goed voorspelde uitslagen. Bij Rondes gewonnen telt een gedeelde eerste plek voor iedereen mee.</p>';
+}
+
+/** Wie voorspelt het best? Alleen gespeelde wedstrijden, beide competities. */
+function analyse(){
+  var uit={};
+  S.players.forEach(function(p){
+    var n=0,toto=0,raak=0,exact=0,punten=0,leeg=0;
+    ['hk','pk'].forEach(function(ck){
+      var c=S.comps[ck], pr=c.preds[p]||blankPred();
+      c.matches.forEach(function(m,i){
+        var a=parseScore(m.actual); if(!a)return;
+        var v=parseScore(pr.wvdw[i]); if(!v){leeg++;return;}
+        n++; var pt=matchPoints(pr.wvdw[i],m.actual,S.pts); punten+=pt;
+        if(pt>0)raak++; if(pt===S.pts.exact)exact++;
+        if(sign(v[0],v[1])===sign(a[0],a[1]))toto++;
+      });
+    });
+    uit[p]={n:n,toto:n?Math.round(100*toto/n):0,raak:n?Math.round(100*raak/n):0,exact:exact,
+      gem:n?Math.round(10*punten/n)/10:0,leeg:leeg};
+  });
+  return uit;
+}
+function analyseBlok(){
+  var a=analyse(), spelers=S.players.filter(function(p){return a[p].n>0;});
+  if(!spelers.length)return '<p class="hint">Na de eerste uitslag staat hier wie het best voorspelt.</p>';
+  var maten=[
+    {k:'toto',kop:'Toto',sub:'winnaar of gelijkspel goed',pct:true},
+    {k:'raak',kop:'Raak',sub:'wedstrijden met punten',pct:true},
+    {k:'gem',kop:'Gem.',sub:'punten per wedstrijd'},
+    {k:'exact',kop:'Exact',sub:'precies goed'}
+  ];
+  var beste={};
+  maten.forEach(function(m){beste[m.k]=Math.max.apply(null,spelers.map(function(p){return a[p][m.k];}));});
+  var volg=spelers.slice().sort(function(x,y){return a[y].gem-a[x].gem||a[y].toto-a[x].toto;});
+  var top=volg[0], kop='<p class="ankop"><b>'+(top===ME?'Jij':h(top))+'</b> haalt de meeste punten per wedstrijd ('+
+    String(a[top].gem).replace('.',',')+'). ';
+  var tt=spelers.slice().sort(function(x,y){return a[y].toto-a[x].toto;})[0];
+  kop+=(tt===top?'En '+(tt===ME?'jij hebt':'heeft')+' ook':(tt===ME?'Jij hebt':h(tt)+' heeft'))+' de winnaar het vaakst goed ('+a[tt].toto+'%).</p>';
+  var rijen=volg.map(function(p){
+    return '<div class="anrij'+(p===ME?' mine':'')+'"><span class="wie">'+avatar(p,'s')+'<span>'+h(p)+'</span></span>'+
+      maten.map(function(m){
+        var v=a[p][m.k], b=v>0&&v===beste[m.k];
+        return '<span class="anw'+(b?' top':'')+'">'+(m.k==='gem'?String(v).replace('.',','):v)+(m.pct?'<i>%</i>':'')+
+          (m.pct?'<em style="--w:'+v+'%"></em>':'')+'</span>';
+      }).join('')+'</div>';
+  }).join('');
+  return kop+'<div class="analyse"><div class="anrij kop" aria-hidden="true"><span class="wie"></span>'+
+    maten.map(function(m){return '<span class="anw" title="'+m.sub+'">'+m.kop+'</span>';}).join('')+'</div>'+rijen+'</div>'+
+    '<p class="hint">Over de gespeelde wedstrijden die iemand had ingevuld. Toto: winnaar of gelijkspel goed. '+
+    'Raak: wedstrijden waarvoor je punten kreeg. Exact: precies de uitslag. Oranje is de beste van de poule.</p>';
 }
 
 /** Ranglijst: per speler hoeveel teams op de juiste plek staan, en wat dat oplevert. Live, tot de eindstand vaststaat. */
@@ -2184,6 +2255,54 @@ function liveBlock(ck){
       '<div class="leeg-staat"><b>Nog geen stand</b>'+(ADMIN?'Tik op Nu ophalen of vul hem hieronder in.':'De app werkt deze vanzelf bij.')+'</div>')+
     aanpassen+'</div>'+(ingevuld?telling:'')+beheer;
 }
+/** Aanval tegen verdediging: elk team als punt, uit de doelpunten van de competitiestand. */
+function aanvalBlok(ck){
+  var cf=((S.comps[ck].live&&S.comps[ck].live.cijfers)||[]).filter(function(c){return c.gespeeld>0;});
+  if(cf.length<4)return '<p class="hint">Zodra de doelpunten van deze competitie binnen zijn, staat hier hoe elk team aanvalt en verdedigt.</p>';
+  var pv=cf.map(function(c){return {t:c.team,v:c.voor/c.gespeeld,g:c.tegen/c.gespeeld};});
+  var W=320,H=240,L=30,R=14,T=14,B=36;
+  // As strak om de data, met een halve goal marge, zodat de teams uit elkaar komen te staan.
+  function bereik(k){var w=pv.map(function(p){return p[k];});return [Math.max(0,Math.floor((Math.min.apply(null,w)-.4)*2)/2),Math.ceil((Math.max.apply(null,w)+.4)*2)/2];}
+  var rv=bereik('v'), rg=bereik('g');
+  // Minder tegen = beter, dus de verdediging loopt van links (lek) naar rechts (dicht).
+  var x=function(g){return L+(W-L-R)*(rg[1]-g)/(rg[1]-rg[0]);}, y=function(v){return T+(H-T-B)*(rv[1]-v)/(rv[1]-rv[0]);};
+  var gemV=pv.reduce(function(n,p){return n+p.v;},0)/pv.length, gemG=pv.reduce(function(n,p){return n+p.g;},0)/pv.length;
+  function tikken(r){var uit=[],st=(r[1]-r[0])>2.5?1:.5;for(var t=Math.ceil(r[0]/st)*st;t<=r[1]+1e-9;t+=st)uit.push(Math.round(t*10)/10);return uit;}
+  var komma=function(n){return String(n).replace('.',',');};
+  var raster=tikken(rv).map(function(v){return '<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v).toFixed(1)+'" y2="'+y(v).toFixed(1)+'"/><text x="'+(L-6)+'" y="'+(y(v)+3.5).toFixed(1)+'" text-anchor="end">'+komma(v)+'</text>';}).join('')+
+    tikken(rg).map(function(g){return '<text x="'+x(g).toFixed(1)+'" y="'+(H-B+15)+'" text-anchor="middle">'+komma(g)+'</text>';}).join('');
+  var gem='<line class="gem" x1="'+x(gemG).toFixed(1)+'" x2="'+x(gemG).toFixed(1)+'" y1="'+T+'" y2="'+(H-B)+'"/>'+
+    '<line class="gem" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(gemV).toFixed(1)+'" y2="'+y(gemV).toFixed(1)+'"/>';
+  var hoek='<text class="hk" x="'+(W-R-4)+'" y="'+(T+11)+'" text-anchor="end">sterk</text>'+
+    '<text class="hk" x="'+(L+4)+'" y="'+(H-B-6)+'">zwak</text>';
+  // Korte code per team: HDM en SCHC blijven, Oranje-Rood wordt OR, Amsterdam AMS.
+  function code(t){t=String(t);if(t.length<=4)return t.toUpperCase();var w=t.split(/[\s-]+/).filter(Boolean);
+    return (w.length>1?w.map(function(x){return x.charAt(0);}).join(''):t.slice(0,3)).toUpperCase();}
+  var bezet=[], punten=pv.slice().sort(function(a,b){return (b.v-b.g)-(a.v-a.g);}).map(function(p){
+    var cx=x(p.g), cy=y(p.v), c=code(p.t), bw=c.length*7.2+3, bh=13, plek=null;
+    bezet.push({x:cx-5,y:cy-5,w:10,h:10});
+    [[7,-6.5],[-7-bw,-6.5],[-bw/2,-19],[-bw/2,6]].some(function(o){
+      var r={x:cx+o[0],y:cy+o[1],w:bw,h:bh};
+      if(r.x<L||r.x+r.w>W-R+10||r.y<T-4||r.y+r.h>H-B)return false;
+      var vrij=!bezet.some(function(q){return r.x<q.x+q.w&&q.x<r.x+r.w&&r.y<q.y+q.h&&q.y<r.y+r.h;});
+      if(vrij)plek=r; return vrij;
+    });
+    if(plek)bezet.push(plek);
+    return '<g class="tp"><circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="4.5"><title>'+h(p.t)+': '+
+      komma(p.v.toFixed(1))+' voor, '+komma(p.g.toFixed(1))+' tegen per wedstrijd</title></circle>'+
+      (plek?'<text x="'+(plek.x+1).toFixed(1)+'" y="'+(plek.y+9).toFixed(1)+'">'+h(c)+'</text>':'')+'</g>';
+  }).join('');
+  var lijst=pv.slice().sort(function(a,b){return (b.v-b.g)-(a.v-a.g);}).map(function(p){
+    return '<li><span>'+teamLogo(p.t)+h(p.t)+' <small>'+h(code(p.t))+'</small></span><b>'+komma(p.v.toFixed(1))+'</b><b>'+komma(p.g.toFixed(1))+'</b></li>';
+  }).join('');
+  return '<svg class="aanval" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Doelpunten voor en tegen per wedstrijd, per team">'+
+    '<g class="ras">'+raster+'</g>'+gem+hoek+punten+
+    '<text class="as" x="'+((L+W-R)/2)+'" y="'+(H-4)+'" text-anchor="middle">tegen per wedstrijd · minder is beter →</text>'+
+    '<text class="as" transform="translate(10 '+((T+H-B)/2)+') rotate(-90)" text-anchor="middle">voor per wedstrijd</text></svg>'+
+    '<ol class="aanlijst"><li class="kop"><span>Team</span><b>Voor</b><b>Tegen</b></li>'+lijst+'</ol>'+
+    '<p class="hint">Gemiddeld per wedstrijd, uit de competitiestand. De stippellijnen zijn het gemiddelde van de competitie. Handig voor de bonusvragen minste tegengoals en meest scorend.</p>';
+}
+
 function vLive(){
   var laatst=['hk','pk'].map(function(ck){return S.comps[ck].live&&S.comps[ck].live.updated;})
     .filter(Boolean).sort().pop();
@@ -2206,7 +2325,8 @@ function vLive(){
     ? '<div class="card foutkaart"><h2>Automatisch ophalen lukt niet</h2><p class="hint" style="margin:0">'+h(S.autoFout)+'</p>'+
       '<p class="hint">Tik op Nu ophalen om het opnieuw te proberen. Blijft dit staan, dan is de site van de standen waarschijnlijk veranderd.</p></div>'
     : '';
-  return paginaKop('Competitie','naast ieders voorspelling')+fout+uitleg+liveBlock(compKeuze);
+  return paginaKop('Competitie','naast ieders voorspelling')+fout+uitleg+liveBlock(compKeuze)+
+    blok('aanval-'+compKeuze,'Aanval en verdediging','doelpunten voor en tegen per team',aanvalBlok(compKeuze));
 }
 
 /* ================= werkelijke eindstand ================= */
