@@ -129,6 +129,20 @@ async function toestel(browser, naam, device, metOffline) {
     google.script.run.withSuccessHandler((x) => ok(x.state.comps.hk.preds.Rein.wvdw[r])).getState('Rein', '1234')), r0);
   check(mijnScore === '3-1', 'snelle score-invoer opgeslagen op de server (' + mijnScore + ')');
 
+  // 3c2. omlaag trekken om te verversen
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const ververst = await page.evaluate(() => new Promise((ok) => {
+    const oud = window.refresh; let geroepen = false;
+    window.refresh = function (s) { geroepen = true; return oud.apply(this, arguments); };
+    const el = document.querySelector('#view');
+    const t = (y) => new Touch({ identifier: 2, target: el, clientX: 150, clientY: y });
+    el.dispatchEvent(new TouchEvent('touchstart', { touches: [t(120)], changedTouches: [t(120)], bubbles: true }));
+    el.dispatchEvent(new TouchEvent('touchmove', { touches: [t(330)], changedTouches: [t(330)], bubbles: true }));
+    el.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t(330)], bubbles: true }));
+    setTimeout(() => { window.refresh = oud; ok(geroepen); }, 50);
+  }));
+  check(ververst, 'omlaag trekken bovenaan de pagina ververst');
+
   // 3d. status: offline en weer online
   await page.evaluate(() => window.dispatchEvent(new Event('offline')));
   check(await page.textContent('#status') === 'offline', 'status toont "offline" zonder netwerk');
