@@ -47,6 +47,18 @@ async function toestel(browser, naam, device, metOffline) {
   check(await page.evaluate(() => window.scrollY) === 0, 'na inloggen begint de pagina bovenaan');
   check(!!(await page.$('.hero .ronde')) && /Goede(morgen|middag|avond|nacht), Rein/.test(await page.textContent('.hallo')), 'homescherm: begroeting en speelronde');
   check((await page.$$('.podium .trede')).length === 3, 'tussenstand: podium met de top 3');
+  const krap = await page.evaluate(() => {
+    var echt = Date.now, r = huidigeRonde(), dl = new Date(deadlineVoor('hk', r)).getTime();
+    var oud = S.comps.hk.preds[ME].wvdw[r]; S.comps.hk.preds[ME].wvdw[r] = '';   // nog niet ingevuld
+    Date.now = function () { return dl - 3 * 3600000; };       // drie uur voor sluiten
+    tab = 'stand'; render(); var k = !!document.querySelector('.aftel.krap');
+    Date.now = echt; S.comps.hk.preds[ME].wvdw[r] = oud; render(); return k;
+  });
+  check(krap, 'minder dan een dag en nog niet ingevuld: "laatste kans" in rood');
+  check(!!(await page.$('.rondekaart')) && /speeldag/i.test(await page.textContent('.rondekaart')), 'laatste speeldag: wie won hem');
+  check((await page.$$('.standkaart .trede .rchip, .standkaart .lrow .rchip')).length === 4, 'punten van de laatste speeldag bij elke speler');
+  const beweegt = await page.evaluate(() => { var sc = scoreAll(), lr = laatsteRonde(sc); return !!lr && Object.keys(lr.plekVoor).length === S.players.length; });
+  check(beweegt, 'stand van vóór de laatste speeldag berekend (voor de pijltjes)');
   check(await page.evaluate(() => document.fonts.check('800 20px "Barlow Condensed"')), 'scorebordletter (Barlow Condensed) geladen');
 
   // 3. elk tabblad: renderen, geen horizontale scroll van de pagina
