@@ -104,7 +104,7 @@ if (process.env.SEED !== 'leeg') vm.runInContext(`(function () {
 })();`, sandbox);
 
 /* ---------- API: zoals script.google.com ---------- */
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json', '.woff2': 'font/woff2' };
 const antwoorden = new Map(); let teller = 0;
 let vertraging = 0, uit = false, siteUit = false, swVersie = ''; // te zetten via /__mock?delay=ms&down=1&site=0&sw=x
 const log = [];
