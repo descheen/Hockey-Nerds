@@ -63,6 +63,21 @@ html.klaar #splash{opacity:0;visibility:hidden;pointer-events:none}
 #status.err{color:var(--bad);border-color:rgba(255,107,133,.5)}
 @keyframes puls{50%{opacity:.3}}
 
+.ptr{position:fixed;left:50%;top:calc(var(--top) + 56px);z-index:25;width:40px;height:40px;margin-left:-20px;border-radius:50%;
+  background:var(--surface-3);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--acc);
+  opacity:0;transform:translateY(-30px);pointer-events:none;transition:opacity .2s,transform .2s var(--zacht);box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.ptr svg{width:20px;height:20px}
+.ptr.draait svg{animation:draai .8s linear infinite}
+@keyframes draai{to{transform:rotate(360deg)}}
+/* competitietabbladen */
+.comptabs{display:none;max-width:680px;margin:0 auto;grid-template-columns:1fr 1fr}
+body.mettabs .comptabs{display:grid}
+.comptabs button{position:relative;height:var(--tik);background:none;border:0;color:var(--faint);font-size:var(--t-m);font-weight:750;cursor:pointer;letter-spacing:-.01em}
+.comptabs button.on{color:var(--txt)}
+.comptabs button.on:after{content:'';position:absolute;left:22%;right:22%;bottom:0;height:3px;border-radius:3px 3px 0 0;background:var(--acc)}
+.comptabs .punt{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);margin-left:6px;vertical-align:2px}
+body.mettabs .pager{top:calc(var(--top) + 53px + var(--tik))}
+
 /* ================= inhoud ================= */
 main{max-width:680px;margin:0 auto;padding:var(--s4) calc(var(--s4) + var(--rechts)) calc(var(--balk) + var(--onder) + var(--s6)) calc(var(--s4) + var(--links))}
 #view.in{animation:in .22s var(--zacht)}
@@ -306,6 +321,7 @@ button.midden{cursor:pointer}
 .uitleg b{color:var(--acc-txt)}
 .wkiezer{padding:var(--s4);border-top:1px solid var(--line-soft);background:var(--surface-2)}
 .wkiezer .wkop{display:flex;align-items:center;gap:var(--s2);padding:0;border:0;margin-bottom:var(--s2)}
+.wkiezer .wkop b{font-size:var(--t-m)}
 .wlijst{display:grid;gap:6px;margin-top:var(--s2)}
 button.wkeuze{min-height:48px;text-align:left;background:var(--bg);border:1px solid var(--line);padding:0 var(--s3);border-radius:12px;font-size:var(--t-m);font-weight:650;cursor:pointer}
 button.wkeuze.aan{border-color:var(--acc);background:var(--acc-soft);color:var(--acc-txt)}
@@ -334,6 +350,16 @@ input.wveld{margin-top:4px}
 .predrij.fout select{border-color:var(--bad)}
 .predrij .ro{display:flex;align-items:center;min-height:var(--tik);padding:0 12px;background:var(--bg);border-radius:var(--r-s);font-size:var(--t-m);color:var(--txt)}
 .predrij .ro.goed{color:var(--gold);font-weight:750;box-shadow:inset 0 0 0 1px rgba(255,204,85,.5)}
+.nusamen{font-size:var(--t-s);color:var(--dim);background:var(--ok-soft);border-radius:var(--r-s);padding:var(--s2) var(--s3);margin:-4px 0 var(--s3)}
+.nusamen b{color:var(--ok)}
+.predkaart.lees .predrij{margin-bottom:0}
+.predkaart.lees .predrij .ro{min-height:38px;background:none;border-radius:0;padding:0 4px;border-bottom:1px solid var(--line-soft)}
+.predkaart.lees .predrij:last-child .ro{border-bottom:0}
+.predkaart.lees .predrij .ro.goed{box-shadow:none;border-bottom-color:rgba(255,204,85,.4)}
+.predkaart.lees .predrij .ro.nu{color:var(--ok)}
+.ro .nugoed{margin-left:auto;font-style:normal;font-size:11px;font-weight:700;color:var(--ok);white-space:nowrap}
+.predkaart.lees .predbonus .predrij{grid-template-columns:auto 1fr;gap:var(--s3);align-items:center}
+.predkaart.lees .predbonus .ro{justify-content:flex-end;font-weight:650;text-align:right}
 .predbonus{margin-top:var(--s4);padding-top:var(--s3);border-top:1px solid var(--line)}
 .predbonus .predrij{grid-template-columns:1fr;gap:4px;margin-bottom:var(--s3)}
 .predbonus .nr{text-align:left;color:var(--faint);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.06em}
@@ -344,7 +370,8 @@ details.blok summary::-webkit-details-marker{display:none}
 details.blok summary b{display:block;font-size:var(--t-l)}
 details.blok summary small{display:block;color:var(--dim);font-size:var(--t-xs)}
 details.blok summary:after,details.ander summary:after{content:'';margin-left:auto;width:8px;height:8px;flex:none;border-right:2px solid var(--faint);border-bottom:2px solid var(--faint);transform:rotate(45deg);transition:transform .2s}
-details.blok[open] summary:after,details.blok .blokin{padding:0 var(--s4) var(--s4)}
+details.blok[open] summary:after,details.ander[open] summary:after{transform:rotate(-135deg)}
+details.blok .blokin{padding:0 var(--s4) var(--s4)}
 details.blok .blokin>h3:first-child,details.blok .rangwrap h3{margin-top:var(--s2)}
 details.ander{border-radius:var(--r-m);background:var(--surface-2);margin-bottom:var(--s2)}
 details.ander summary{list-style:none;display:flex;align-items:center;gap:var(--s2);min-height:52px;padding:0 var(--s3);font-weight:700;cursor:pointer}
@@ -781,10 +808,18 @@ function shell(){
       '<div class="merk">Hockey <b>NERDS</b></div><div class="ruimte"></div>'+
       '<span id="status"></span>'+
       '<button class="ikoon" id="btnRefresh" aria-label="Verversen">'+IK.ververs+'</button>'+
-    '</div></div>'+
+    '</div><div class="comptabs" id="comptabs" role="tablist" aria-label="Competitie"></div></div>'+
+    '<div class="ptr" id="ptr" aria-hidden="true">'+IK.ververs+'</div>'+
     '<main><div id="view"></div></main>'+
     '<div class="tabbar"><nav id="nav" aria-label="Hoofdmenu"></nav></div>';
   document.getElementById('btnRefresh').onclick=function(){refresh(false);};
+  // Hoofdklasse en Promotieklasse zijn aparte tabbladen. De keuze blijft staan als je van scherm wisselt.
+  document.getElementById('comptabs').addEventListener('click',function(e){
+    var b=e.target.closest('button[data-comp]');if(!b)return;
+    if(b.dataset.comp===compKeuze){window.scrollTo({top:0,behavior:'smooth'});return;}
+    schuifRichting=b.dataset.comp==='pk'?'links':'rechts';
+    compKeuze=b.dataset.comp;render();window.scrollTo(0,0);
+  });
   document.getElementById('nav').addEventListener('click',function(e){
     var b=e.target.closest('button[data-tab]');if(!b)return;
     var doel=b.dataset.tab;
@@ -819,6 +854,30 @@ function shell(){
     if(Math.abs(dx)<60||Math.abs(dx)<Math.abs(dy)*1.5)return;
     if(e.target.closest('input,select,textarea'))return;
     naarRonde(huidigeVenster()+(dx<0?1:-1));
+  },{passive:true});
+  // Omlaag trekken om te verversen, zoals in elke app. Een geïnstalleerde web-app heeft dat niet vanzelf.
+  var ptr=document.getElementById('ptr'), py=0, px=0, trek=0, bezig=false;
+  document.addEventListener('touchstart',function(e){
+    if(window.scrollY>0||e.touches.length!==1||e.target.closest('input,select,textarea,.tabbar')){py=0;return;}
+    py=e.touches[0].clientY;px=e.touches[0].clientX;trek=0;
+  },{passive:true});
+  document.addEventListener('touchmove',function(e){
+    if(!py||bezig)return;
+    var dy=e.touches[0].clientY-py, dx=e.touches[0].clientX-px;
+    if(dy<=0||Math.abs(dx)>dy){trek=0;ptr.style.cssText='';return;}
+    trek=Math.min(dy*0.5,90);
+    ptr.style.transition='none';
+    ptr.style.opacity=Math.min(1,trek/60);
+    ptr.style.transform='translateY('+(trek-30)+'px) rotate('+(trek*4)+'deg)';
+  },{passive:true});
+  document.addEventListener('touchend',function(){
+    if(!py)return; py=0;
+    if(trek>=60&&!bezig){
+      bezig=true; ptr.classList.add('draait'); ptr.style.transform='translateY(30px)';
+      refresh(false);
+      setTimeout(function(){bezig=false;ptr.classList.remove('draait');ptr.style.cssText='';},900);
+    }else ptr.style.cssText='';
+    trek=0;
   },{passive:true});
   window.addEventListener('online',function(){setStatus('online','ok');refresh(true);});
   window.addEventListener('offline',function(){setStatus('offline','err');});
@@ -869,6 +928,15 @@ function render(){
       IK[t[0]]+'<span class="lang">'+t[1]+'</span>'+(t[2]?'<span class="kort" aria-hidden="true">'+t[2]+'</span>':'')+
       (t[0]==='stand'&&open&&actief!=='stand'?'<i class="stip">'+open+'</i>':'')+'</button>';
   }).join('');
+  // Competitietabbladen alleen waar het om één competitie gaat. Stand is het totaal van beide.
+  var metTabs=/^(wvdw|pred|live|result)$/.test(tab);
+  document.body.classList.toggle('mettabs',metTabs);
+  var takenPer={};
+  watMoetIkNog().forEach(function(t){if(t.comp)takenPer[t.comp]=1;});
+  document.getElementById('comptabs').innerHTML=metTabs?['hk','pk'].map(function(ck){
+    return '<button role="tab" data-comp="'+ck+'" class="'+(compKeuze===ck?'on':'')+'" aria-selected="'+(compKeuze===ck)+'">'+
+      h(S.comps[ck].name)+(takenPer[ck]?'<i class="punt" aria-label="nog iets te doen"></i>':'')+'</button>';
+  }).join(''):'';
   var v=document.getElementById('view');
   v.innerHTML=({stand:vStand,wvdw:vWvdw,pred:vPred,live:vLive,result:vMeer,info:vMeer})[tab]();
   // Zachte overgang, alleen als je echt van scherm of ronde wisselt.
@@ -887,11 +955,6 @@ function blok(sleutel,titel,sub,inhoud){
 function paginaKop(titel,sub){
   return '<div class="paginakop"><h1>'+titel+'</h1>'+(sub?'<span class="sub">'+sub+'</span>':'')+'</div>';
 }
-function compSeg(){
-  return '<div class="seg" role="tablist">'+['hk','pk'].map(function(ck){
-    return '<button role="tab" data-comp="'+ck+'" class="'+(compKeuze===ck?'on':'')+'" aria-selected="'+(compKeuze===ck)+'">'+h(S.comps[ck].name)+'</button>';
-  }).join('')+'</div>';
-}
 
 /* ================= stand (home) ================= */
 function vStand(){
@@ -902,7 +965,7 @@ function vStand(){
   var gat=tweede!=null?sc[leider].total-sc[tweede].total:0;
   var hero=sc[leider].total>0
     ? '<div class="koploper"><div class="kroon">'+IK.kroon+'</div><div class="wie">'+
-        '<div class="lbl">Koploper</div><div class="nm">'+h(leider)+bekerHtml(leider)+'</div>'+
+        '<div class="lbl">Koploper'+(leider===ME?' · dat ben jij':'')+'</div><div class="nm">'+h(leider)+bekerHtml(leider)+'</div>'+
         '<div class="gat">'+(gat>0?gat+' punt'+(gat===1?'':'en')+' voor op '+h(tweede):'gedeeld met '+h(tweede))+'</div></div>'+
         '<div class="tot">'+sc[leider].total+'</div></div>'
     : '';
@@ -1160,8 +1223,8 @@ function matchKiezer(ck,i){
       '<button class="btn pri" data-adm="setProgramma" data-arg="'+ck+':'+i+'">Opslaan</button>'+
       '<button class="btn" data-adm="wisProgramma" data-arg="'+ck+':'+i+'">Leegmaken</button></div></details>'
     : '';
-  return '<div class="wkiezer"><div class="wkop"><b>Kies de wedstrijd</b>'+
-    '<span class="mini">'+h(c.name)+' · ronde '+(i+1)+'</span><div style="flex:1"></div>'+
+  return '<div class="wkiezer"><div class="wkop"><div style="flex:1;min-width:0"><b>Kies de wedstrijd</b>'+
+    '<div class="mini">'+h(c.name)+', speelronde '+(i+1)+'</div></div>'+
     '<button class="btn mini" data-kies="dicht" data-c="'+ck+'">Sluiten</button></div>'+
     (prog.length
       ? '<p class="hint">'+(prog.length>=6?'De wedstrijden van deze ronde':'Bekend uit deze ronde')+':</p>'+knoppen
@@ -1187,10 +1250,10 @@ function naarRonde(r){
 function puntKlasse(pt){return pt>=10?'p10':pt>=7?'p7':pt>=5?'p5':pt>=2?'p2':'p0';}
 function rondeKiezer(){
   var r=huidigeVenster(), nu=huidigeRonde();
-  var d=speeldatum('hk',r)||speeldatum('pk',r);
+  var d=speeldatum(compKeuze,r);
   var stippen='';
   for(var i=0;i<22;i++){
-    var klaar=gespeeld('hk',i)&&gespeeld('pk',i);
+    var klaar=gespeeld(compKeuze,i);
     stippen+='<i class="'+(i===r?'hier':i===nu?'nu':klaar?'gespeeld':'')+'"></i>';
   }
   return '<div class="pager">'+
@@ -1278,12 +1341,12 @@ function watMoetIkNog(){
     if(rondeDicht(ck,nu))return;
     if(!(m.home&&m.away)){
       if(beurtVoor(nu)===ME||ADMIN)
-        lijst.push({tab:'wvdw',tekst:'Kies de wedstrijd voor de '+c.name});
+        lijst.push({tab:'wvdw',tekst:'Kies de wedstrijd voor de '+c.name,comp:ck});
       return;
     }
     var pr=c.preds[ME];
     if(pr&&!String(pr.wvdw[nu]||'').trim())
-      lijst.push({tab:'wvdw',tekst:'Voorspel '+matchLabel(m)});
+      lijst.push({tab:'wvdw',tekst:'Voorspel '+matchLabel(m),comp:ck});
   });
   ['hk','pk'].forEach(function(ck){
     if(S.comps[ck].dicht)return;
@@ -1295,7 +1358,7 @@ function watMoetIkNog(){
   ['hk','pk'].forEach(function(ck){
     var c=S.comps[ck];
     (c.mist||[]).forEach(function(i){
-      lijst.push({tab:'live',tekst:'Uitslag ontbreekt: '+c.name+' ronde '+(i+1)+', '+matchLabel(c.matches[i])+
+      lijst.push({tab:'live',comp:ck,tekst:'Uitslag ontbreekt: '+c.name+' ronde '+(i+1)+', '+matchLabel(c.matches[i])+
         (ADMIN?'. Druk bij Competitie op Nu ophalen':''),let:1});
     });
   });
@@ -1317,6 +1380,12 @@ function wieMistNog(){
 }
 
 /** Eén regel per competitie: speeldatum, sluitmoment en aftelling. */
+/** "zo 18/10 15:00": kort genoeg voor één regel op een telefoon. */
+function kortDatum(v){
+  if(!v)return '';
+  var d=(v instanceof Date)?v:new Date(v), dagen=['zo','ma','di','wo','do','vr','za'];
+  return dagen[d.getDay()]+' '+d.getDate()+'/'+(d.getMonth()+1)+' '+d.getHours()+':'+('0'+d.getMinutes()).slice(-2);
+}
 function klokRegels(nu){
   return '<div class="klokken">'+['hk','pk'].map(function(ck){
     var c=S.comps[ck], d=speeldatum(ck,nu), dl=deadlineVoor(ck,nu);
@@ -1327,7 +1396,8 @@ function klokRegels(nu){
               : '<span class="klok">geen datum</span>');
     return '<div class="klokrij'+(af?' afwijkend':'')+'">'+
       '<span class="kcomp">'+h(c.name)+'</span><span class="kstatus">'+status+'</span>'+
-      '<span class="kdatum">'+(d?h(datumTekst(d.toISOString())):'–')+(dl&&!dicht?' · sluit '+h(datumTekst(dl)):'')+'</span>'+
+      '<span class="kdatum">'+(d?'speelt '+h(kortDatum(d)):'–')+'</span>'+
+      (dl&&!dicht?'<span class="ksluit">sluit '+h(kortDatum(dl))+'</span>':'')+
       (af?'<span class="kwaarschuw">speelt doordeweeks, controleer het sluitmoment</span>':'')+
       '</div>';
   }).join('')+'</div>';
@@ -1356,7 +1426,7 @@ function beurtBanner(){
 function vWvdw(){
   var nu=huidigeRonde();
   return rondeKiezer()+
-    wvdwBlock('hk')+wvdwBlock('pk')+
+    wvdwBlock(compKeuze)+
     '<p class="wvdwhint">Zwiep naar links of rechts voor een andere ronde. Tik op punten voor de uitleg.</p>'+
     '<div class="sectie">Wie kiest wanneer</div><div class="card"><div class="kiezerrooster">'+
     Array.apply(null,{length:22}).map(function(_,i){
@@ -1403,11 +1473,13 @@ function predKaart(ck,p){
       '<div class="verborgen">Verborgen tot de competitie begint.</div></div>';
   }
 
+  // Zolang de eindstand er niet is: laat zien wat er nú goed staat volgens de competitiestand.
+  var L=(c.live&&c.live.standing)||[];
   var rijen=pr.standing.map(function(t,i){
-    var goed=eq(t,c.result.standing[i]);
+    var goed=eq(t,c.result.standing[i]), nuGoed=!eindstandBekend&&!!t&&eq(t,L[i]);
     var cel=mag
       ? '<select data-a="standing" data-c="'+ck+'" data-p="'+h(p)+'" data-i="'+i+'" aria-label="Plek '+(i+1)+'">'+teamOpts(c.teams,t)+'</select>'
-      : '<span class="ro'+(goed?' goed':'')+'">'+(h(t)||'–')+'</span>';
+      : '<span class="ro'+(goed?' goed':'')+(nuGoed?' nu':'')+'">'+(h(t)||'–')+(nuGoed?'<i class="nugoed">staat nu goed</i>':'')+'</span>';
     return '<div class="predrij'+(i===0?' top':'')+(dup[i]?' fout':'')+'"><span class="nr">'+(i+1)+'</span>'+cel+'</div>';
   }).join('');
 
@@ -1435,7 +1507,12 @@ function predKaart(ck,p){
       (dubbel.length>1?' staan':' staat')+' meer dan één keer in je lijst.</p>'
     : '';
 
-  return '<div class="predkaart'+(p===ME?' mijn':'')+'">'+kop+waarschuwing+rijen+bonus+'</div>';
+  var nuGoedTotaal=0;
+  if(!eindstandBekend)pr.standing.forEach(function(t,i){if(t&&eq(t,L[i]))nuGoedTotaal++;});
+  var samen=(!mag&&!eindstandBekend&&L.some(Boolean))
+    ? '<div class="nusamen"><b>'+nuGoedTotaal+' van 12</b> staan nu goed · '+(nuGoedTotaal*S.pts.positie)+' punten als het zo blijft</div>'
+    : '';
+  return '<div class="predkaart'+(p===ME?' mijn':'')+(mag?'':' lees')+'">'+kop+samen+waarschuwing+rijen+bonus+'</div>';
 }
 
 function predBlock(ck){
@@ -1457,7 +1534,7 @@ function predBlock(ck){
     '<p class="hint">De kampioen wordt via de play-offs beslist, dus die vul je apart in. Hij hoeft dus niet je nummer 1 te zijn. '+
     'Elk team op de juiste plek levert '+S.pts.positie+' punten op. Andermans lijstjes blijven verborgen tot de competitie begint.</p>';
 }
-function vPred(){return paginaKop('Voorspellingen','eindstand')+compSeg()+predBlock(compKeuze);}
+function vPred(){return paginaKop('Voorspellingen','eindstand')+predBlock(compKeuze);}
 
 /* ================= competitiestand ================= */
 function liveBlock(ck){
@@ -1531,7 +1608,7 @@ function vLive(){
       '<button class="btn pri vol" data-adm="haalVoorstellen">Nu ophalen</button>'+
       (VOORSTEL?agendaBlok():'')+'</div>';
   }
-  return paginaKop('Competitie','naast ieders voorspelling')+compSeg()+uitleg+liveBlock(compKeuze);
+  return paginaKop('Competitie','naast ieders voorspelling')+uitleg+liveBlock(compKeuze);
 }
 
 /* ================= werkelijke eindstand ================= */
@@ -1563,7 +1640,7 @@ function vResult(){
   return '<p class="hint" style="margin:0 4px 12px">'+
     (ADMIN?'Jij bent beheerder, dus jij vult dit in. Zodra hier iets staat, verrekenen alle ranglijst- en bonuspunten zich automatisch.'
           :'Alleen de beheerder ('+h(S.admin)+') vult dit in.')+'</p>'+
-    compSeg()+resultBlock(compKeuze);
+    resultBlock(compKeuze);
 }
 
 /* ================= meer ================= */
@@ -1840,7 +1917,8 @@ function onClick(e){
   var u=e.target.closest('[data-uitleg]');
   if(u){
     var vak=document.getElementById('uitleg-'+u.dataset.c);
-    if(vak)vak.innerHTML=puntenUitleg(u.dataset.c,u.dataset.p,Number(u.dataset.i));
+    if(vak){vak.innerHTML=puntenUitleg(u.dataset.c,u.dataset.p,Number(u.dataset.i));
+      try{vak.scrollIntoView({block:'nearest',behavior:'smooth'});}catch(x){}}
     return;
   }
   var b=e.target.closest('[data-adm]'); if(!b)return;
