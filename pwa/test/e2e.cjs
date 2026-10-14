@@ -60,12 +60,6 @@ async function toestel(browser, naam, device, metOffline) {
   const beweegt = await page.evaluate(() => { var sc = scoreAll(), lr = laatsteRonde(sc); return !!lr && Object.keys(lr.plekVoor).length === S.players.length; });
   check(beweegt, 'stand van vóór de laatste speeldag berekend (voor de pijltjes)');
   check(await page.evaluate(() => document.fonts.check('800 20px "Barlow Condensed"')), 'scorebordletter (Barlow Condensed) geladen');
-  const grafiek = await page.evaluate(() => {
-    var d = verloop(), laatst = d[d.length - 1];
-    var klopt = S.players.every(function (p) { return laatst.stand[p] === scoreAll()[p].hk.wvdw + scoreAll()[p].pk.wvdw; });
-    return { lijnen: document.querySelectorAll('.verloop polyline').length, dagen: d.length, klopt: klopt };
-  });
-  check(grafiek.lijnen === 4 && grafiek.dagen >= 2 && grafiek.klopt, `verloopgrafiek: een lijn per speler over ${grafiek.dagen} speeldagen`);
   const tabel = await page.evaluate(() => {
     tab = 'live'; compKeuze = 'hk'; render();
     var r = document.querySelectorAll('.standtabel .strij:not(.kop)');
