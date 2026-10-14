@@ -1,16 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Hockey NERDS: H wit, N oranje, groene bal. Alles binnen de maskable-veilige zone (cirkel r=205). -->
-  <rect width="512" height="512" fill="#0f1420"/>
-  <g transform="translate(256 256) scale(0.82) translate(-256 -256)">
-    <!-- H -->
-    <rect x="96"  y="150" width="40" height="212" rx="6" fill="#e8edf7"/>
-    <rect x="200" y="150" width="40" height="212" rx="6" fill="#e8edf7"/>
-    <rect x="96"  y="236" width="144" height="40" fill="#e8edf7"/>
-    <!-- N -->
-    <rect x="272" y="150" width="40" height="212" rx="6" fill="#ff7a1a"/>
-    <rect x="376" y="150" width="40" height="212" rx="6" fill="#ff7a1a"/>
-    <polygon points="272,150 318,150 416,362 370,362" fill="#ff7a1a"/>
-    <!-- bal -->
-    <circle cx="256" cy="414" r="20" fill="#38d39f"/>
+  <!-- Hockey NERDS: H licht, N oranje, groene bal. Alles binnen de maskable-veilige zone (cirkel r=205). -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="75%">
+      <stop offset="0" stop-color="#1d2738"/><stop offset="1" stop-color="#0b0f17"/>
+    </radialGradient>
+    <radialGradient id="gloed" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#3ddba5" stop-opacity=".55"/><stop offset="1" stop-color="#3ddba5" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g transform="translate(256 248) scale(0.8) translate(-256 -256)">
+    <rect x="96"  y="150" width="44" height="212" rx="10" fill="#eef2f9"/>
+    <rect x="196" y="150" width="44" height="212" rx="10" fill="#eef2f9"/>
+    <rect x="96"  y="234" width="144" height="44" fill="#eef2f9"/>
+    <rect x="272" y="150" width="44" height="212" rx="10" fill="#ff7a1a"/>
+    <rect x="372" y="150" width="44" height="212" rx="10" fill="#ff7a1a"/>
+    <polygon points="276,150 324,150 412,362 364,362" fill="#ff7a1a"/>
+    <circle cx="256" cy="420" r="44" fill="url(#gloed)"/>
+    <circle cx="256" cy="420" r="20" fill="#3ddba5"/>
   </g>
 </svg>

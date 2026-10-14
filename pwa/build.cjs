@@ -1,20 +1,23 @@
 #!/usr/bin/env node
 /**
- * Maakt docs/index.html uit Index.html (de Apps Script-versie).
+ * Maakt docs/index.html uit pwa/src/app.html (de PWA-bron).
  *
  *   node pwa/build.cjs                 # houdt de exec-URL uit de huidige docs/index.html
  *   node pwa/build.cjs --api=<URL>     # zet een nieuwe exec-URL
  *
- * Index.html blijft de bron. De PWA-versie krijgt alleen extra's erbij:
+ * pwa/src/app.html is het mobile-first ontwerp van de PWA. De logica (opslaan,
+ * wachtrij, rechten, punten) is gelijk aan Index.html, de Apps Script-versie.
+ * Pas je daar logica aan, neem die dan ook over in pwa/src/app.html.
+ * De build voegt toe:
  * meta-tags, een fetch-shim voor google.script.run, wat CSS voor telefoons
- * en de service worker. Draai dit opnieuw na elke wijziging in Index.html.
+ * en de service worker. Draai dit opnieuw na elke wijziging in pwa/src/app.html.
  */
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
 const ROOT = path.join(__dirname, '..');
-const SRC = path.join(ROOT, 'Index.html');
+const SRC = path.join(ROOT, 'pwa', 'src', 'app.html');
 const OUT = path.join(ROOT, 'docs', 'index.html');
 const SW = path.join(ROOT, 'docs', 'sw.js');
 const PLACEHOLDER = 'https://script.google.com/macros/s/VUL-HIER-JE-DEPLOYMENT-ID-IN/exec';
@@ -30,6 +33,14 @@ function huidigeApi() {
 }
 
 const API = huidigeApi();
+
+// iOS laat bij het openen een opstartbeeld zien als het formaat precies klopt.
+// De beelden maakt pwa/make-icons.cjs.
+const SCHERMEN = require('./schermen.cjs');
+const OPSTART = SCHERMEN.map(([w, h, r]) =>
+  `<link rel="apple-touch-startup-image" href="icons/opstart-${w * r}x${h * r}.png" ` +
+  `media="(device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${r}) and (orientation: portrait)">`).join('\n');
+
 if (!/^https?:\/\/[^'"\s<>]+$/.test(API)) throw new Error('Ongeldige exec-URL: ' + API);
 
 const HEAD = `
@@ -47,6 +58,7 @@ var HN_API = '${API}';
 <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+${OPSTART}
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="NERDS">
@@ -113,21 +125,6 @@ var HN_API = '${API}';
   Object.defineProperty(google.script, 'run', { get: function () { return runner(null, null, undefined); } });
 })();
 </script>
-<style>
-/* PWA: telefoon, notch en home-indicator */
-html{background:var(--bg,#0f1420);-webkit-text-size-adjust:100%;text-size-adjust:100%}
-body{min-height:100vh;min-height:100dvh;
-  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  -webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
-.toast{bottom:calc(20px + env(safe-area-inset-bottom));max-width:calc(100vw - 32px);text-align:center}
-/* iOS zoomt in op velden kleiner dan 16px en zoomt daarna niet terug */
-@media (pointer:coarse){input,select,textarea{font-size:16px}}
-#hn-update{position:fixed;left:50%;transform:translateX(-50%);white-space:nowrap;top:calc(10px + env(safe-area-inset-top));z-index:100;
-  display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px);padding:8px 8px 8px 16px;border-radius:24px;
-  background:var(--panel2,#1e2739);border:1px solid var(--acc,#ff7a1a);color:var(--txt,#e8edf7);font-size:14px;font-weight:600;
-  box-shadow:0 6px 24px rgba(0,0,0,.45)}
-#hn-update button{flex-shrink:0;background:var(--acc,#ff7a1a);color:#1a0d02;border:0;border-radius:18px;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer}
-</style>
 <!-- ===== PWA: eind ===== -->
 `;
 
@@ -181,12 +178,12 @@ if ('serviceWorker' in navigator) {
 
 function vervangEenmaal(html, zoek, door) {
   const n = html.split(zoek).length - 1;
-  if (n !== 1) throw new Error(`Verwacht precies één "${zoek}" in Index.html, gevonden: ${n}`);
+  if (n !== 1) throw new Error(`Verwacht precies één "${zoek}" in de bron, gevonden: ${n}`);
   return html.replace(zoek, () => door);
 }
 
 let html = fs.readFileSync(SRC, 'utf8');
-if (/<\?/.test(html)) throw new Error('Index.html bevat Apps Script-scriptlets (<? ?>), die werken niet op GitHub Pages.');
+if (/<\?/.test(html)) throw new Error('De bron bevat Apps Script-scriptlets (<? ?>), die werken niet op GitHub Pages.');
 html = vervangEenmaal(html, '<meta charset="utf-8">', '<meta charset="utf-8">' + HEAD);
 html = vervangEenmaal(html, '</body>', TAIL + '</body>');
 

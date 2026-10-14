@@ -73,6 +73,36 @@ for (const f of ['Code.gs', 'doPost-snippet.gs']) {
   vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 }
 
+/* ---------- demodata (SEED=leeg voor een kale poule) ---------- */
+// Vaste "willekeur", zodat screenshots elke keer hetzelfde zijn.
+if (process.env.SEED !== 'leeg') vm.runInContext(`(function () {
+  var r = 7; function rnd(n) { r = (r * 9301 + 49297) % 233280; return Math.floor(r / 233280 * n); }
+  var s = readState_();
+  s.players.forEach(function (p) { s.pins[p] = hashPin_(p, '1234'); });
+  var gespeeld = { hk: 3, pk: 6 };
+  ['hk', 'pk'].forEach(function (ck) {
+    var c = s.comps[ck], t = c.teams;
+    for (var i = 0; i <= gespeeld[ck]; i++) {
+      var m = c.matches[i], prog = (PROGRAMMA[ck] || {})[i];
+      var paar = prog ? prog[rnd(prog.length)].split(' - ') : [t[(i * 2) % t.length], t[(i * 2 + 5) % t.length]];
+      m.home = paar[0]; m.away = paar[1];
+      if (i < gespeeld[ck]) m.actual = rnd(5) + '-' + rnd(4);
+      s.players.forEach(function (p, pi) {
+        if (i === gespeeld[ck] && (p === 'Rein' || p === 'David')) return; // nog in te vullen
+        c.preds[p].wvdw[i] = rnd(5) + '-' + rnd(4);
+      });
+    }
+    var basis = c.preds.Rein.standing.slice();
+    ['Tijn', 'David'].forEach(function (p) {
+      var l = basis.slice(); for (var k = 0; k < 4; k++) { var a = rnd(12), b = rnd(12), x = l[a]; l[a] = l[b]; l[b] = x; }
+      c.preds[p].standing = l; c.preds[p].kampioen = l[rnd(3)]; c.preds[p].winter = l[rnd(3)];
+    });
+    var live = basis.slice(); for (var k = 0; k < 5; k++) { var a = rnd(12), b = rnd(12), x = live[a]; live[a] = live[b]; live[b] = x; }
+    c.live = { standing: live, updated: '2026-10-12T08:00:00.000Z' };
+  });
+  writeState_(s);
+})();`, sandbox);
+
 /* ---------- API: zoals script.google.com ---------- */
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json' };
 const antwoorden = new Map(); let teller = 0;

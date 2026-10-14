@@ -5,16 +5,20 @@ Voorspellingspoule voor de Hoofdklasse en Promotieklasse. De app draait op Googl
 
 ```
 Code.gs              Apps Script: alle logica + doGet (ongewijzigd)
-Index.html           Apps Script: de app (bron voor de PWA)
+Index.html           Apps Script: de app zoals in de browser (ongewijzigd)
 doPost-snippet.gs    Apps Script: JSON-ingang voor de PWA (plak je erbij)
-docs/                GitHub Pages: de PWA (index.html, manifest, service worker, iconen)
+pwa/src/app.html     PWA: bron van de mobiele app (ontwerp + dezelfde logica als Index.html)
+docs/                GitHub Pages: de gebouwde PWA (index.html, manifest, service worker, iconen)
 pwa/                 build-script, icoon-generator en tests (niet nodig in Apps Script)
 ```
 
 ## Hoe het werkt
 
-De PWA is een kopie van `Index.html`. Daarin vervangt een kleine fetch-shim `google.script.run`.
-De rest van de code merkt het verschil niet: `withSuccessHandler`, `withFailureHandler` en
+De PWA heeft een eigen, mobile-first ontwerp (`pwa/src/app.html`): onderbalk met Stand, Wedstrijd,
+Voorspellingen, Competitie en Meer, kaarten in plaats van brede tabellen, één speelronde per scherm.
+De logica is dezelfde als in `Index.html`: wachtrij, opslaan, rechten, puntentelling en dezelfde
+aanroepen naar `Code.gs`. Een kleine fetch-shim vervangt `google.script.run`, en de code merkt het
+verschil niet: `withSuccessHandler`, `withFailureHandler` en
 `withUserObject` werken zoals altijd. Elke aanroep wordt een `POST` naar de Apps Script exec-URL
 met een `text/plain` body (`{"fn":"login","args":["Rein","1234"]}`). `doPost` geeft alleen deze
 functies door: `login`, `getState`, `getPlayers`, `applyPatches`, `adminAction`, `haalVoorstellen`
@@ -84,9 +88,13 @@ Herinneringsmails linken naar `appUrl`, of naar de Apps Script-URL als die leeg 
 naar de PWA linken, zet de GitHub Pages-URL dan als app-adres in het beheerdersgedeelte van de app
 (de actie `setAppUrl`).
 
-### Na een wijziging in Index.html
+### Na een wijziging aan de app
 
-`Index.html` blijft de bron. Na een aanpassing:
+De PWA wordt gebouwd uit `pwa/src/app.html`. `Index.html` is de Apps Script-versie en blijft
+los daarvan bestaan. Verander je **logica** (punten, rechten, opslaan) in `Index.html`, neem die
+functie dan ook over in `pwa/src/app.html`: beide hebben dezelfde functies met dezelfde namen.
+Alleen de schermen (`vStand`, `vWvdw`, `vPred`, `vLive`, `vMeer` en hun hulpjes) en de CSS zijn
+anders. Na een aanpassing:
 
 ```bash
 node pwa/build.cjs        # maakt docs/index.html opnieuw en houdt de exec-URL
@@ -106,10 +114,14 @@ eigen opslag, los van Safari of Chrome.
 ### iPhone (Safari)
 
 - [ ] Open `https://descheen.github.io/Hockey-Nerds/` in **Safari**. Andere browsers op iOS kunnen alleen installeren vanaf iOS 16.4.
-- [ ] **Deel-knop > Zet op beginscherm**. Het icoon is "HN" op een donkere achtergrond, met de naam "NERDS".
+- [ ] **Deel-knop > Zet op beginscherm**. Het icoon is "HN" (wit en oranje, met een groene bal) op een donkere achtergrond, met de naam "NERDS".
+- [ ] Bij het openen zie je kort het opstartscherm (logo + "Hockey NERDS"), daarna de app. Geen wit flitsje.
 - [ ] Open via het icoon: geen adresbalk, schermvullend.
-- [ ] De statusbalk (klok, batterij) valt niet over de titel, en de notch of Dynamic Island bedekt niets.
-- [ ] Onderaan zit niets onder de home-indicator, ook een melding (toast) niet.
+- [ ] De statusbalk (klok, batterij) valt niet over de bovenbalk, en de notch of Dynamic Island bedekt niets.
+- [ ] De onderbalk zit boven de home-indicator (het streepje onderin). Alle vijf de vakken zijn met je duim te raken.
+- [ ] Wedstrijd: zwiep naar links en rechts, je bladert door de speelrondes. Tik op de rondetitel om terug te gaan naar nu.
+- [ ] Wedstrijd: tik op het linker scorevak, typ 3: de cursor springt naar rechts. Typ 1: na een tel staat bovenin "opgeslagen".
+- [ ] Scrol op een lange pagina: de bovenbalk blijft staan en is iets doorzichtig. Niets scrolt zijwaarts.
 - [ ] Inloggen met naam + pincode werkt, en een foute pincode geeft "Pincode klopt niet."
 - [ ] Tik in een invoerveld: het scherm zoomt **niet** in.
 - [ ] Vul een voorspelling of uitslag in: de status springt naar "opgeslagen". Controleer in de sheet of via de oude Apps Script-URL dat de wijziging er staat.
@@ -125,7 +137,8 @@ eigen opslag, los van Safari of Chrome.
 - [ ] Open de URL in Chrome. Je ziet de melding **App installeren**, of kies in het menu (⋮) **App installeren** of **Toevoegen aan startscherm**.
 - [ ] Het icoon in de app-lade is netjes rond of afgerond bijgesneden (maskable), zonder afgeknipte letters.
 - [ ] Bij het openen verschijnt een donker opstartscherm met het icoon, daarna de app zonder adresbalk.
-- [ ] Statusbalk en navigatiebalk zijn donker, en niets valt eronder.
+- [ ] Statusbalk en navigatiebalk zijn donker, en niets valt eronder. Met gebarennavigatie zit de onderbalk boven het streepje.
+- [ ] Zwiepen tussen speelrondes werkt, en zwiepen vanaf de rand gaat niet per ongeluk "terug".
 - [ ] Inloggen, iets invullen, "opgeslagen" zien.
 - [ ] App sluiten en heropenen: nog ingelogd.
 - [ ] Vliegtuigmodus: de app opent offline met de melding. Wijzigen geeft "geen verbinding", en na het herstel wordt het opgeslagen.
@@ -146,16 +159,22 @@ eigen opslag, los van Safari of Chrome.
 ## Lokaal testen (voor ontwikkelaars)
 
 `pwa/test/mock-server.cjs` draait de **echte** `Code.gs` + `doPost-snippet.gs` in Node, met
-nagebootste Apps Script-diensten (sheet in het geheugen, geen internet en geen mail). De API draait
+nagebootste Apps Script-diensten (sheet in het geheugen, geen internet en geen mail). Hij start met
+demodata (gekozen wedstrijden, uitslagen, voorspellingen, alle pincodes `1234`). Wil je een lege
+poule, start dan met `SEED=leeg`. De API draait
 op een andere origin en doet net als Google een 302-redirect, zodat CORS echt getest wordt.
 
 ```bash
 cd pwa && npm install          # alleen playwright
 npm run mock &                 # site op http://localhost:8787, API op :8788
 npm test                       # end-to-end op iPhone 13, Pixel 7 en iPhone SE (Chromium)
+node test/screens.cjs na       # screenshots van elk hoofdscherm naar test/screens/na/
 ```
 
-De test doet het volgende: inloggen, alle tabbladen (geen horizontale scroll), opslaan via
+De test controleert het mobiele ontwerp: de onderbalk (labels passen), tikgebieden van minstens
+44px op elk scherm, geen tabellen of zijwaarts scrollen, contrast van de kleurtokens, zwiepen en
+pijlen tussen speelrondes, de snelle score-invoer, de offline-status en een ronde als gewone speler.
+Daarnaast: inloggen, alle tabbladen, opslaan via
 applyPatches, de shim-API (handlers, user object, foutpad), een beheerdersactie, automatisch
 inloggen na herladen, de service worker en het manifest, een serverstoring tijdens het opslaan met
 herstel, offline openen uit de cache, de update-balk (die ook wacht op opslaan), het wissen van de cache bij uitloggen, en controleren dat elk
