@@ -7,8 +7,8 @@
  *   Opslaan gaat altijd rechtstreeks naar de server, nooit uit een cache.
  * VERSIE wordt gezet door pwa/build.cjs.
  */
-var VERSIE = 'bc06da3d84';
-var SHELL_CACHE = 'hn-shell-v2-' + VERSIE; // v2: mobile-first ontwerp
+var VERSIE = 'e013689b87';
+var SHELL_CACHE = 'hn-shell-v3-' + VERSIE; // v3: lettertype en nieuwe uitstraling
 var API_CACHE = 'hn-api';
 var SHELL = [
   './',
@@ -18,7 +18,10 @@ var SHELL = [
   './icons/maskable-512.png',
   './icons/apple-touch-icon.png',
   './icons/favicon-32.png',
-  './icons/favicon.svg'
+  './icons/favicon.svg',
+  './fonts/barlow-condensed-latin-600-normal.woff2',
+  './fonts/barlow-condensed-latin-700-normal.woff2',
+  './fonts/barlow-condensed-latin-800-normal.woff2'
 ];
 var LEES = { getPlayers: true, getState: true, login: true };
 

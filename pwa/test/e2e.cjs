@@ -43,6 +43,11 @@ async function toestel(browser, naam, device, metOffline) {
   await page.waitForSelector('#nav button');
   check(true, 'inloggen werkt, app-shell staat');
   check(await page.evaluate(() => ME === 'Rein' && ADMIN === true), 'ME/ADMIN gezet uit login-antwoord');
+  await page.waitForTimeout(200);
+  check(await page.evaluate(() => window.scrollY) === 0, 'na inloggen begint de pagina bovenaan');
+  check(!!(await page.$('.hero .ronde')) && /Goede(morgen|middag|avond|nacht), Rein/.test(await page.textContent('.hallo')), 'homescherm: begroeting en speelronde');
+  check((await page.$$('.podium .trede')).length === 3, 'tussenstand: podium met de top 3');
+  check(await page.evaluate(() => document.fonts.check('800 20px "Barlow Condensed"')), 'scorebordletter (Barlow Condensed) geladen');
 
   // 3. elk tabblad: renderen, geen horizontale scroll van de pagina
   const tabs = await page.$$eval('#nav button', (bs) => bs.map((b) => b.dataset.tab));

@@ -6,6 +6,10 @@
 <!-- PWA-bron: mobile-first ontwerp. Logica komt uit Index.html, schermen en opmaak zijn eigen. -->
 <style>
 /* ================= ontwerp: tokens ================= */
+/* Barlow Condensed (SIL Open Font License, zie fonts/LICENSE-barlow-condensed.txt): de scorebordletter. */
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/barlow-condensed-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/barlow-condensed-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:800;font-display:swap;src:url(fonts/barlow-condensed-latin-800-normal.woff2) format('woff2')}
 :root{
   color-scheme:dark;
   --bg:#0b0f17; --surface:#131a26; --surface-2:#1a2231; --surface-3:#222c3e;
@@ -20,6 +24,7 @@
   --r-s:10px; --r-m:14px; --r-l:20px;
   --t-xs:12px; --t-s:13px; --t-m:15px; --t-l:17px; --t-xl:22px; --t-xxl:32px;
   --tik:44px; --balk:58px;
+  --display:'Barlow Condensed','Arial Narrow',-apple-system,sans-serif;
   --top:env(safe-area-inset-top,0px); --onder:env(safe-area-inset-bottom,0px);
   --links:env(safe-area-inset-left,0px); --rechts:env(safe-area-inset-right,0px);
   --zacht:cubic-bezier(.2,.7,.2,1);
@@ -103,7 +108,6 @@ main{max-width:680px;margin:0 auto;padding:var(--s4) calc(var(--s4) + var(--rech
 #nav .kort,#nav .lang{white-space:nowrap}
 #nav button svg{width:24px;height:24px;transition:transform .2s var(--zacht)}
 #nav button.on{color:var(--acc)}
-#nav button.on:before{content:'';position:absolute;top:0;left:28%;right:28%;height:3px;border-radius:0 0 3px 3px;background:var(--acc)}
 #nav button:active svg{transform:scale(.9)}
 #nav .stip{position:absolute;top:8px;left:calc(50% + 8px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--acc);
   color:var(--on-acc);font-size:10px;font-weight:800;line-height:16px;text-align:center}
@@ -177,7 +181,7 @@ input::placeholder,textarea::placeholder{color:var(--faint)}
 /* ================= login ================= */
 .login{max-width:420px;margin:0 auto;padding:calc(var(--top) + 8vh) calc(var(--s4) + var(--rechts)) calc(var(--onder) + var(--s5)) calc(var(--s4) + var(--links));text-align:center}
 .login .logo{width:72px;height:72px;margin:0 auto var(--s3)}
-.login h1{margin:0;font-size:30px;letter-spacing:-.03em}
+.login h1{margin:0;font-family:var(--display);font-size:42px;font-weight:800;text-transform:uppercase;letter-spacing:.005em;line-height:1.05}
 .login h1 span{color:var(--acc)}
 .login .sub{color:var(--dim);font-size:var(--t-s)}
 .login .card{text-align:left;margin-top:var(--s5)}
@@ -436,6 +440,98 @@ body.uit .toast{bottom:calc(var(--onder) + var(--s5))}
   .stats{grid-template-columns:1fr 1fr}
   .statgrid{grid-template-columns:repeat(3,1fr)}
 }
+
+/* ================= uitstraling ================= */
+body{background:radial-gradient(130% 55% at 50% -12%,rgba(255,122,26,.11),transparent 62%) no-repeat,var(--bg)}
+.merk{font-family:var(--display);font-size:23px;font-weight:800;letter-spacing:.01em;text-transform:uppercase}
+.paginakop h1{font-family:var(--display);font-weight:800;text-transform:uppercase;font-size:38px;letter-spacing:.005em}
+.card h2{font-family:var(--display);font-weight:700;font-size:21px;letter-spacing:.01em}
+.sectie{font-family:var(--display);font-size:15px;font-weight:700;letter-spacing:.14em;color:var(--dim)}
+.sectie:before{content:'';display:inline-block;width:14px;height:3px;border-radius:2px;background:var(--acc);vertical-align:middle;margin:-2px 8px 0 0}
+details.blok summary b{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.01em}
+.pos,.ptot,.predpunten,.pager .ronde,.mijnvak .vast,.uitslagvak .score,.stat b{font-family:var(--display);letter-spacing:.01em}
+.ptot{font-size:28px}.pos{font-size:22px}.pager .ronde{font-size:22px;text-transform:uppercase}
+.sc input{font-family:var(--display);font-weight:800}
+.sc.groot input{font-size:36px}.sc input{font-size:25px}.mijnvak .vast{font-size:40px}.uitslagvak .score{font-size:30px}
+.comptabs button{font-family:var(--display);font-size:17px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.card{box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}
+
+/* onderbalk: pil achter het actieve vak */
+#nav button.on:before{content:'';position:absolute;top:5px;left:50%;right:auto;width:58px;height:30px;margin-left:-29px;border-radius:15px;background:var(--acc-soft);animation:pil .28s var(--zacht)}
+#nav button svg{position:relative;z-index:1}
+@keyframes pil{from{transform:scaleX(.4);opacity:0}}
+
+/* opgeslagen: even een tikje */
+#status.ok{animation:tik .45s var(--zacht)}
+@keyframes tik{0%{transform:scale(.8)}60%{transform:scale(1.08)}100%{transform:none}}
+
+/* hockeyveld als achtergrond */
+.veld{position:relative;overflow:hidden}
+.veld>*{position:relative}
+.veld:before{content:'';position:absolute;top:-18px;right:-70px;width:380px;height:228px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 240' fill='none' stroke='white' stroke-width='2.5'%3E%3Crect x='8' y='8' width='384' height='224' rx='6'/%3E%3Cline x1='200' y1='8' x2='200' y2='232'/%3E%3Cline x1='104' y1='8' x2='104' y2='232' stroke-dasharray='7 7'/%3E%3Cline x1='296' y1='8' x2='296' y2='232' stroke-dasharray='7 7'/%3E%3Cpath d='M8 62 A64 64 0 0 1 72 120 A64 64 0 0 1 8 178'/%3E%3Cpath d='M392 62 A64 64 0 0 0 328 120 A64 64 0 0 0 392 178'/%3E%3Ccircle cx='200' cy='120' r='3' fill='white'/%3E%3C/svg%3E") no-repeat center/contain;opacity:.075;transform:rotate(-9deg);pointer-events:none}
+
+/* spelers: eigen kleur en initiaal */
+.av{--k:#ff7a1a;width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none;
+  font-family:var(--display);font-weight:800;font-size:18px;line-height:1;color:#0b0f17;background:var(--k);box-shadow:0 0 0 2px rgba(255,255,255,.06)}
+.av-s{width:26px;height:26px;font-size:15px}
+.av-l{width:58px;height:58px;font-size:30px;box-shadow:0 0 0 3px var(--surface),0 0 0 5px var(--k)}
+.av-xl{width:56px;height:56px;border-radius:18px;font-size:30px}
+.lwie,.nmw{display:flex;align-items:center;gap:10px;min-width:0}
+.pick button{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap}
+.pick button .new{width:100%;margin-top:-6px}
+
+/* homescherm: begroeting en ronde */
+.hero{border-radius:24px;padding:18px var(--s4) var(--s4);margin-bottom:var(--s3);border:1px solid var(--line-soft);
+  background:linear-gradient(155deg,#1d2638 0%,var(--surface) 70%)}
+.hero.actie{border-color:var(--acc-line);background:linear-gradient(155deg,#2c180a 0%,#1b1410 38%,var(--surface) 80%)}
+.hallo{color:var(--dim);font-size:var(--t-s);font-weight:600}
+.herokop{display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap;margin:2px 0 4px}
+.herokop .ronde{font-family:var(--display);font-size:40px;font-weight:800;text-transform:uppercase;line-height:1;letter-spacing:.005em}
+.aftel{display:flex;align-items:baseline;gap:8px;margin:2px 0 var(--s3)}
+.aftel b{font-family:var(--display);font-size:30px;font-weight:800;color:var(--acc-txt);line-height:1}
+.aftel span{color:var(--dim);font-size:var(--t-s)}
+.hero .klokrij{background:rgba(255,255,255,.04)}
+.mist{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:var(--s3);font-size:var(--t-s);color:var(--dim)}
+.mist .wie{display:inline-flex;align-items:center;gap:6px;color:var(--txt);font-weight:650}
+
+/* podium */
+.standkop{margin:0 0 var(--s3);color:var(--dim);font-size:var(--t-s)}
+.standkop b{color:var(--txt)}
+.podium{display:grid;grid-template-columns:1fr 1.12fr 1fr;align-items:end;gap:var(--s2);margin:var(--s2) 0 var(--s3)}
+.trede{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+.trede .pnm{font-weight:750;margin-top:8px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trede .psub{margin-top:1px}
+.trede .ppt{font-family:var(--display);font-size:30px;font-weight:800;line-height:1.05}
+.trede.mine .pnm{color:var(--acc-txt)}
+.kroontje{height:24px}.kroontje svg{width:24px;height:24px;color:var(--gold);filter:drop-shadow(0 2px 6px rgba(255,204,85,.45))}
+.blokje{width:100%;margin-top:var(--s2);border-radius:12px 12px 4px 4px;display:flex;justify-content:center;padding-top:6px;
+  font-family:var(--display);font-weight:800;font-size:24px;color:rgba(0,0,0,.5);transform-origin:bottom;animation:groei .55s var(--zacht) both}
+.t1 .blokje{height:88px;background:linear-gradient(180deg,#ffdc7d,#d6a12c)}
+.t2 .blokje{height:64px;background:linear-gradient(180deg,#e6ebf4,#9fa9bd);animation-delay:.06s}
+.t3 .blokje{height:48px;background:linear-gradient(180deg,#f2b582,#b26c37);animation-delay:.12s}
+@keyframes groei{from{transform:scaleY(.15);opacity:0}}
+.standkaart .lead{margin-top:var(--s2)}
+
+/* wedstrijd als scorebord */
+.wedstrijd .duel .teams{grid-template-columns:1fr auto 1fr;align-items:start;gap:var(--s2)}
+.club{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+.wedstrijd .duel .teams .club span:last-child{text-align:center;font-size:var(--t-m);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{--h:20;width:56px;height:56px;border-radius:18px;display:inline-flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:800;
+  font-size:21px;letter-spacing:.03em;color:#fff;background:linear-gradient(145deg,hsl(var(--h) 52% 44%),hsl(var(--h) 58% 24%));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 8px 18px rgba(0,0,0,.35)}
+.wedstrijd .duel .teams i.vs{font-family:var(--display);font-style:normal;font-weight:800;font-size:20px;color:var(--faint);align-self:center;margin-top:-26px;letter-spacing:.05em}
+.wedstrijd .duel{background:radial-gradient(90% 120% at 50% 0%,rgba(255,255,255,.04),transparent 70%)}
+
+/* exact goed */
+.exact{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:999px;background:linear-gradient(90deg,#ffdc7d,#e0a93a);
+  color:#2a1a00;font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.06em;text-transform:uppercase;animation:tik .5s var(--zacht)}
+.exact:before{content:'';width:8px;height:8px;border-radius:50%;background:#2a1a00}
+.hallo b{color:var(--txt)}
+#splash .woord{font-family:var(--display);font-size:30px;font-weight:800;text-transform:uppercase;letter-spacing:.01em}
+
+/* login */
+.login.veld:before{top:calc(var(--top) + 2vh);right:50%;margin-right:-190px;opacity:.06}
+
 @media(prefers-reduced-motion:reduce){
   *,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
@@ -457,7 +553,10 @@ var S=null, ME=null, ADMIN=false, PIN=null, tab='stand';
 var queue=[], sending=false, dirty=false, pollTimer=null;
 
 function toast(m,bad){var t=document.getElementById('toast');t.textContent=m;t.className='toast on'+(bad?' bad':'');setTimeout(function(){t.className='toast';},bad?3000:1600);}
-function setStatus(txt,cls){var e=document.getElementById('status');if(e){e.textContent=txt;e.className=cls||'';}}
+function setStatus(txt,cls){var e=document.getElementById('status');if(e){e.textContent=txt;e.className=cls||'';
+  // Een groen vinkje is goed nieuws, dat hoeft niet eeuwig te blijven staan.
+  clearTimeout(setStatus.t);
+  if(cls==='ok')setStatus.t=setTimeout(function(){if(e.className==='ok'&&e.textContent===txt){e.textContent='';e.className='';}},3500);}}
 var h=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});};
 
 /* ================= puntenlogica (spiegel van Code.gs) ================= */
@@ -735,12 +834,12 @@ function boot(){
 }
 function showLogin(err){
   google.script.run.withSuccessHandler(function(info){
-    var sel=null;
+    var sel=null; LOGIN_SPELERS=info.players||[];
     document.getElementById('app').innerHTML=
-      '<div class="login"><svg class=\"logo\" viewBox=\"0 0 120 120\" aria-hidden=\"true\"><rect width=\"120\" height=\"120\" rx=\"30\" fill=\"#151c2a\"/><rect x=\"0.75\" y=\"0.75\" width=\"118.5\" height=\"118.5\" rx=\"29.25\" fill=\"none\" stroke=\"#ff7a1a\" stroke-opacity=\".35\" stroke-width=\"1.5\"/><g transform=\"translate(23 33)\"><rect x=\"0\" y=\"0\" width=\"10\" height=\"46\" rx=\"3\" fill=\"#eef2f9\"/><rect x=\"24\" y=\"0\" width=\"10\" height=\"46\" rx=\"3\" fill=\"#eef2f9\"/><rect x=\"0\" y=\"18\" width=\"34\" height=\"10\" fill=\"#eef2f9\"/><rect x=\"40\" y=\"0\" width=\"10\" height=\"46\" rx=\"3\" fill=\"#ff7a1a\"/><rect x=\"64\" y=\"0\" width=\"10\" height=\"46\" rx=\"3\" fill=\"#ff7a1a\"/><polygon points=\"40,0 51,0 74,46 63,46\" fill=\"#ff7a1a\"/></g><circle cx=\"60\" cy=\"94\" r=\"5\" fill=\"#3ddba5\"/></svg><h1>Hockey <span>NERDS</span></h1><div class="sub">Seizoen '+h(info.season)+'</div>'+
+      '<div class="login veld"><svg class=\"logo\" viewBox=\"0 0 120 120\" aria-hidden=\"true\"><rect width=\"120\" height=\"120\" rx=\"30\" fill=\"#151c2a\"/><rect x=\"0.75\" y=\"0.75\" width=\"118.5\" height=\"118.5\" rx=\"29.25\" fill=\"none\" stroke=\"#ff7a1a\" stroke-opacity=\".35\" stroke-width=\"1.5\"/><g transform=\"translate(23 33)\"><rect x=\"0\" y=\"0\" width=\"10\" height=\"46\" rx=\"3\" fill=\"#eef2f9\"/><rect x=\"24\" y=\"0\" width=\"10\" height=\"46\" rx=\"3\" fill=\"#eef2f9\"/><rect x=\"0\" y=\"18\" width=\"34\" height=\"10\" fill=\"#eef2f9\"/><rect x=\"40\" y=\"0\" width=\"10\" height=\"46\" rx=\"3\" fill=\"#ff7a1a\"/><rect x=\"64\" y=\"0\" width=\"10\" height=\"46\" rx=\"3\" fill=\"#ff7a1a\"/><polygon points=\"40,0 51,0 74,46 63,46\" fill=\"#ff7a1a\"/></g><circle cx=\"60\" cy=\"94\" r=\"5\" fill=\"#3ddba5\"/></svg><h1>Hockey <span>NERDS</span></h1><div class="sub">Seizoen '+h(info.season)+'</div>'+
       '<div class="card"><h2>Wie ben je?</h2>'+
       '<div class="pick" id="pick">'+info.players.map(function(p){
-        return '<button data-p="'+h(p)+'">'+h(p)+(info.claimed[p]?'':'<span class="new">nieuw</span>')+'</button>';}).join('')+'</div>'+
+        return '<button data-p="'+h(p)+'">'+avatar(p,'s')+h(p)+(info.claimed[p]?'':'<span class="new">nieuw</span>')+'</button>';}).join('')+'</div>'+
       '<label class="mini" for="pin">Pincode</label>'+
       '<input id="pin" type="password" inputmode="numeric" placeholder="kies zelf een code" autocomplete="off">'+
       '<p class="hint">Eerste keer? De code die je nu invult wordt jouw code. Onthoud hem.</p>'+
@@ -770,7 +869,7 @@ function showLogin(err){
   }).withFailureHandler(function(){
     document.body.classList.add('uit');
     document.getElementById('app').innerHTML=
-      '<div class="login">'+LOGO_HTML+'<h1>Hockey <span>NERDS</span></h1>'+
+      '<div class="login veld">'+LOGO_HTML+'<h1>Hockey <span>NERDS</span></h1>'+
       '<div class="card"><div class="leeg-staat"><b>Geen verbinding</b>De server is nu niet bereikbaar. Controleer je internet en probeer het opnieuw.</div>'+
       '<button class="btn pri vol" onclick="location.reload()">Opnieuw proberen</button></div></div>';
     document.documentElement.classList.add('klaar');
@@ -780,6 +879,8 @@ function start(r){
   S=r.state; ME=r.who; ADMIN=r.admin;
   try{PIN=JSON.parse(localStorage.getItem('hn-login')).pin;}catch(e){}
   shell(); render();
+  // Na het inloggen bovenaan beginnen, niet waar het pincodeveld stond.
+  if(document.activeElement)document.activeElement.blur(); window.scrollTo(0,0);
   clearInterval(pollTimer); pollTimer=setInterval(function(){refresh(true);},25000);
 }
 function logout(){try{localStorage.removeItem('hn-login');}catch(e){} location.reload();}
@@ -958,42 +1059,81 @@ function paginaKop(titel,sub){
   return '<div class="paginakop"><h1>'+titel+'</h1>'+(sub?'<span class="sub">'+sub+'</span>':'')+'</div>';
 }
 
+/* ================= identiteit: spelers, clubs, begroeting ================= */
+var KLEUREN=['#ff8a3d','#3ddba5','#8dbbff','#ffcc55','#ff7a95','#b99bff','#5fd6ea','#f3a3d6'];
+var LOGIN_SPELERS=[];
+/** Elke speler houdt overal dezelfde kleur: zijn plek in de spelerslijst. */
+function spelerKleur(p){
+  var lijst=(S&&S.players)||LOGIN_SPELERS||[], i=lijst.indexOf(p);
+  if(i<0){i=0;for(var k=0;k<String(p).length;k++)i+=String(p).charCodeAt(k);}
+  return KLEUREN[i%KLEUREN.length];
+}
+function avatar(p,maat){
+  return '<span class="av'+(maat?' av-'+maat:'')+'" style="--k:'+spelerKleur(p)+'" aria-hidden="true">'+h(String(p||'?').charAt(0).toUpperCase())+'</span>';
+}
+/** Een clubbadge: twee of drie letters op een eigen kleur, afgeleid van de naam. */
+function clubBadge(team){
+  var t=String(team||''), tint=0;
+  for(var i=0;i<t.length;i++)tint=(tint*31+t.charCodeAt(i))%360;
+  var woorden=t.replace(/[^A-Za-zÀ-ÿ ]+/g,' ').trim().split(/\s+/);
+  var af=t.length<=4?t:(woorden.length>1?woorden[0].charAt(0)+woorden[1].charAt(0):t.slice(0,2));
+  return '<span class="badge" style="--h:'+tint+'" aria-hidden="true">'+h(af.toUpperCase())+'</span>';
+}
+/** " · je staat 2e" (of gedeeld), zodra er punten zijn. */
+function mijnPlek(){
+  if(S.players.indexOf(ME)<0)return '';
+  var sc=scoreAll(), mijn=sc[ME].total;
+  if(!S.players.some(function(p){return sc[p].total>0;}))return '';
+  var boven=S.players.filter(function(p){return sc[p].total>mijn;}).length;
+  var gelijk=S.players.filter(function(p){return p!==ME&&sc[p].total===mijn;}).length;
+  return ' · je staat <b>'+(boven+1)+'e</b>'+(gelijk?' (gedeeld)':'');
+}
+function begroeting(){var u=new Date().getHours();return u<6?'Goedenacht':u<12?'Goedemorgen':u<18?'Goedemiddag':'Goedenavond';}
+/** "2d 5u" of "3u 20m": kort genoeg voor een groot getal. */
+function aftelKort(dl){
+  var ms=new Date(dl).getTime()-Date.now(); if(!(ms>0))return '';
+  var m=Math.floor(ms/60000), u=Math.floor(m/60), d=Math.floor(u/24);
+  return d>0?d+'d '+(u%24)+'u':u>0?u+'u '+(m%60)+'m':m+'m';
+}
+
 /* ================= stand (home) ================= */
 function vStand(){
   var sc=scoreAll();
   var order=S.players.slice().sort(function(a,b){return sc[b].total-sc[a].total;});
-  var max=1; S.players.forEach(function(p){if(sc[p].total>max)max=sc[p].total;});
-  var leider=order[0], tweede=order[1];
-  var gat=tweede!=null?sc[leider].total-sc[tweede].total:0;
-  var hero=sc[leider].total>0
-    ? '<div class="koploper"><div class="kroon">'+IK.kroon+'</div><div class="wie">'+
-        '<div class="lbl">Koploper'+(leider===ME?' · dat ben jij':'')+'</div><div class="nm">'+h(leider)+bekerHtml(leider)+'</div>'+
-        '<div class="gat">'+(gat>0?gat+' punt'+(gat===1?'':'en')+' voor op '+h(tweede):'gedeeld met '+h(tweede))+'</div></div>'+
-        '<div class="tot">'+sc[leider].total+'</div></div>'
-    : '';
-  var rows=order.map(function(p,i){
-    var s=sc[p], tot=Math.max(1,s.total);
-    var seg=[['var(--acc)',s.hk.wvdw+s.pk.wvdw],['var(--ok)',s.hk.positie+s.pk.positie],['var(--gold)',s.hk.bonus+s.pk.bonus]];
-    return '<div class="lrow '+(i===0&&s.total>0?'first ':'')+(p===ME?'mine':'')+'">'+
-      '<div class="pos">'+(i+1)+'</div>'+
-      '<div style="min-width:0"><div class="pname">'+h(p)+(p===ME?' <span class="mini">jij</span>':'')+bekerHtml(p)+'</div>'+
-      '<div class="psub">HK '+s.hk.total+' · PK '+s.pk.total+'</div><div class="bars">'+
-      seg.map(function(x){return '<i style="background:'+x[0]+';width:'+(x[1]/tot*100*(s.total/max))+'%"></i>';}).join('')+
-      '</div></div>'+
+  var iemand=order.some(function(p){return sc[p].total>0;});
+  // Gelijk aantal punten is dezelfde plek.
+  var plek={};
+  order.forEach(function(p,i){plek[p]=(i>0&&sc[p].total===sc[order[i-1]].total)?plek[order[i-1]]:i+1;});
+  var podium='';
+  if(iemand&&order.length>=3){
+    podium='<div class="podium">'+[order[1],order[0],order[2]].map(function(p,j){
+      var trede=[2,1,3][j], s=sc[p];
+      return '<div class="trede t'+trede+(p===ME?' mine':'')+'">'+
+        '<div class="kroontje">'+(trede===1?IK.kroon:'')+'</div>'+avatar(p,'l')+
+        '<div class="pnm">'+h(p)+bekerHtml(p)+'</div><div class="psub">HK '+s.hk.total+' · PK '+s.pk.total+'</div>'+
+        '<div class="ppt">'+s.total+'</div><div class="blokje">'+plek[p]+'</div></div>';
+    }).join('')+'</div>';
+  }
+  var rest=(podium?order.slice(3):order).map(function(p){
+    var s=sc[p];
+    return '<div class="lrow'+(p===ME?' mine':'')+'"><div class="pos">'+plek[p]+'</div>'+
+      '<div class="lwie">'+avatar(p)+'<div style="min-width:0"><div class="pname">'+h(p)+(p===ME?' <span class="mini">jij</span>':'')+bekerHtml(p)+'</div>'+
+      '<div class="psub">HK '+s.hk.total+' · PK '+s.pk.total+'</div></div></div>'+
       '<div class="ptot">'+s.total+'</div></div>';
   }).join('');
+  var leider=order[0], tweede=order[1], gat=sc[leider].total-sc[tweede].total;
+  var kop=iemand
+    ? '<p class="standkop"><b>'+(leider===ME?'Jij':h(leider))+'</b> '+(leider===ME?'staat':'staat')+' bovenaan'+
+      (gat>0?', '+gat+' punt'+(gat===1?'':'en')+' voor op '+(tweede===ME?'jou':h(tweede)):', gedeeld met '+(tweede===ME?'jou':h(tweede)))+'.</p>'
+    : '<p class="standkop">Nog niemand heeft punten. Na de eerste uitslag komt hier het podium.</p>';
   return beurtBanner()+
-    '<div class="sectie">Tussenstand</div>'+hero+
-    '<div class="card"><div class="lead">'+rows+'</div>'+
-    '<div class="legend"><span><b style="background:var(--acc)"></b>Wedstrijd van de week</span>'+
-    '<span><b style="background:var(--ok)"></b>Teams op juiste plek</span>'+
-    '<span><b style="background:var(--gold)"></b>Bonusvragen</span></div></div>'+
+    '<div class="sectie">Tussenstand</div>'+
+    '<div class="card standkaart">'+kop+podium+(rest?'<div class="lead">'+rest+'</div>':'')+'</div>'+
     blok('uitsplitsing','Uitsplitsing','waar de punten vandaan komen',uitsplitsing(sc,order))+
     blok('rang','Ranglijst','beide competities, '+(eindstandKlaar()?'eindstand':'nu'),ranglijstBlok())+
     blok('bonus','Bonuspunten','als het hierbij zou blijven',bonusProjectieBlok());
 }
 
-/** Staat de definitieve eindstand er al in, of kijken we naar de tussenstand? */
 function eindstandKlaar(){
   return ['hk','pk'].some(function(ck){
     return (S.comps[ck].result.standing||[]).some(function(t){return String(t||'').trim();});
@@ -1042,7 +1182,7 @@ function uitsplitsing(sc,order){
     beste[col.k]=m;
   });
   return '<div class="stats">'+order.map(function(p){
-    return '<div class="statkaart'+(p===ME?' mine':'')+'"><div class="nm">'+h(p)+bekerHtml(p)+'</div><div class="statgrid">'+
+    return '<div class="statkaart'+(p===ME?' mine':'')+'"><div class="nm">'+avatar(p,'s')+h(p)+bekerHtml(p)+'</div><div class="statgrid">'+
       kolommen.map(function(col){
         var v=rij[p][col.k], top=(v>0&&v===beste[col.k]);
         return '<div class="stat'+(top?' top':'')+'"><b>'+v+'</b><span>'+col.kop+'</span></div>';
@@ -1288,9 +1428,10 @@ function wvdwBlock(ck){
   var gespeeldNu=!!(String(m.actual||'').trim()&&parseScore(m.actual));
   var status=gespeeldNu?'<span class="tag ok">gespeeld</span>'
     : dicht?'<span class="tag">gesloten</span>'
-    : rest?'<span class="klok'+(new Date(dl).getTime()-Date.now()<86400000?' bijna':'')+'">nog '+rest+'</span>':'';
+    : rest?'<span class="klok'+(new Date(dl).getTime()-Date.now()<86400000?' bijna':'')+'">nog '+aftelKort(dl)+'</span>':'';
   var teams=(m.home&&m.away)
-    ? '<div class="teams"><span>'+h(m.home)+'</span><i>tegen</i><span>'+h(m.away)+'</span></div>'
+    ? '<div class="teams"><div class="club">'+clubBadge(m.home)+'<span>'+h(m.home)+'</span></div><i class="vs">VS</i>'+
+      '<div class="club">'+clubBadge(m.away)+'<span>'+h(m.away)+'</span></div></div>'
     : '<div class="teams"><span></span><span class="open">'+(h(naam)||'nog geen wedstrijd gekozen')+'</span><span></span></div>';
   var kies=magKiezen
     ? '<button class="btn mini" data-kies="'+i+'" data-c="'+ck+'" style="margin-top:10px">'+(naam?'Wijzig wedstrijd':'Kies wedstrijd')+'</button>'
@@ -1306,7 +1447,8 @@ function wvdwBlock(ck){
         ? scoreVak(v,'data-a="pred" data-c="'+ck+'" data-p="'+h(ME)+'" data-i="'+i+'"','groot')
         : '<span class="vast">'+(h(v)||'–')+'</span>')+
       '<div class="pts '+puntKlasse(pt)+(toon?' tik':'')+'"'+(toon?' data-uitleg="1" data-c="'+ck+'" data-p="'+h(ME)+'" data-i="'+i+'"':'')+'>'+
-        (toon?pt+' pt':'&nbsp;')+'</div></div></div>';
+        (toon?pt+' pt':'&nbsp;')+'</div></div>'+
+      (toon&&pt===S.pts.exact?'<span class="exact">Exact goed!</span>':'')+'</div>';
   }
   // werkelijke uitslag
   var uitslag=(ADMIN||gespeeldNu)
@@ -1320,7 +1462,7 @@ function wvdwBlock(ck){
     var cel=canEditPred(ck,p,'wvdw',i)
       ? scoreVak(v,'data-a="pred" data-c="'+ck+'" data-p="'+h(p)+'" data-i="'+i+'"','klein')
       : '<span class="vs'+(v?'':' niets')+'">'+(h(v)||'nog niets')+'</span>';
-    return '<div class="arij"><div class="nm">'+h(p)+bekerHtml(p)+'<small>totaal '+scorePlayer(c,p,S.pts).wvdw+'</small></div>'+cel+
+    return '<div class="arij"><div class="nmw">'+avatar(p)+'<div class="nm">'+h(p)+bekerHtml(p)+'<small>totaal '+scorePlayer(c,p,S.pts).wvdw+'</small></div></div>'+cel+
       '<div class="pts '+puntKlasse(pt)+(gespeeldNu?' tik':'')+'"'+(gespeeldNu?' data-uitleg="1" data-c="'+ck+'" data-p="'+h(p)+'" data-i="'+i+'"':'')+'>'+
         (gespeeldNu?pt:'&nbsp;')+'</div></div>';
   }).join('');
@@ -1397,7 +1539,7 @@ function klokRegels(nu){
     var rest=resterend(dl), dicht=rondeDicht(ck,nu), af=wijktAf(ck,nu);
     var status = dicht
       ? '<span class="tag">gesloten</span>'
-      : (rest ? '<span class="klok'+(new Date(dl).getTime()-Date.now()<86400000?' bijna':'')+'">nog '+rest+'</span>'
+      : (rest ? '<span class="klok'+(new Date(dl).getTime()-Date.now()<86400000?' bijna':'')+'">nog '+aftelKort(dl)+'</span>'
               : '<span class="klok">geen datum</span>');
     return '<div class="klokrij'+(af?' afwijkend':'')+'">'+
       '<span class="kcomp">'+h(c.name)+'</span><span class="kstatus">'+status+'</span>'+
@@ -1411,23 +1553,37 @@ function klokRegels(nu){
 function beurtBanner(){
   var nu=huidigeRonde(), wie=beurtVoor(nu), ik=(wie===ME);
   var todo=watMoetIkNog(), mist=wieMistNog();
+  // Het eerstvolgende sluitmoment van deze ronde, groot in beeld.
+  var eerst='';
+  ['hk','pk'].forEach(function(ck){
+    if(rondeDicht(ck,nu))return;
+    var dl=deadlineVoor(ck,nu);
+    if(dl&&(!eerst||new Date(dl)<new Date(eerst)))eerst=dl;
+  });
+  var aftel=eerst&&aftelKort(eerst)
+    ? '<div class="aftel"><b>'+aftelKort(eerst)+'</b><span>tot de ronde sluit</span></div>'
+    : '<div class="aftel"><span>Deze ronde is gesloten.</span></div>';
   var takenHtml = todo.length
     ? '<div class="taken">'+todo.map(function(t){
         return '<button class="taak'+(t.let?' let':'')+'" data-ga="'+t.tab+'"'+(t.comp?' data-comp="'+t.comp+'"':'')+'>'+h(t.tekst)+'</button>';
       }).join('')+'</div>'
     : '<div class="taken klaar">'+IK.vink+'<span>Je bent bij, niets meer te doen deze ronde.</span></div>';
   var mistHtml = mist.length
-    ? '<p class="hint">Nog niet ingevuld: <b>'+mist.map(function(p){return p===ME?'jij':h(p);}).join(', ')+'</b></p>'
+    ? '<div class="mist">Nog niet ingevuld:'+mist.map(function(p){
+        return '<span class="wie">'+avatar(p,'s')+(p===ME?'jij':h(p))+'</span>';
+      }).join('')+'</div>'
     : '';
   var volgende=[1,2,3].map(function(k){
     return '<span>W'+(nu+1+k)+' · <b>'+h(beurtVoor(nu+k))+'</b></span>';
   }).join('');
-  return '<div class="card taakkaart'+(todo.length?'':' rustig')+'">'+
-    '<div class="taakkop"><span class="naam">Speelronde '+(nu+1)+'</span>'+
+  return '<div class="hero veld'+(todo.length?' actie':'')+'">'+
+    '<div class="hallo">'+begroeting()+', '+h(ME)+mijnPlek()+'</div>'+
+    '<div class="herokop"><span class="ronde">Speelronde '+(nu+1)+'</span>'+
       '<span class="tag'+(ik?' me':'')+'">'+(ik?'jouw keuze':h(wie)+' kiest')+'</span></div>'+
-    takenHtml+mistHtml+klokRegels(nu)+
+    aftel+takenHtml+mistHtml+klokRegels(nu)+
     '<div class="hierna">Hierna '+volgende+'</div></div>';
 }
+
 function vWvdw(){
   var nu=huidigeRonde();
   return rondeKiezer()+
@@ -1468,7 +1624,7 @@ function predKaart(ck,p){
   });
   var dubbel=Object.keys(dubbelNamen);
 
-  var kop='<div class="predkop"><span class="naam">'+h(p)+bekerHtml(p)+'</span>'+
+  var kop='<div class="predkop">'+avatar(p)+'<span class="naam">'+h(p)+bekerHtml(p)+'</span>'+
     (p===ME?'<span class="tag me">jij</span>':'')+
     '<div class="spacer"></div>'+
     '<span class="mini">punten</span><span class="predpunten">'+(s.positie+s.bonus)+'</span></div>';
@@ -1526,7 +1682,7 @@ function predBlock(ck){
   var mijnKaart=(S.players.indexOf(ME)>=0)?predKaart(ck,ME):'';
   var andereKaarten=anderen.map(function(p){
     var s=scorePlayer(c,p,S.pts);
-    return '<details class="ander" data-blok="'+ck+'-'+h(p)+'"'+(openBlok[ck+'-'+p]?' open':'')+'><summary>'+h(p)+bekerHtml(p)+' <small>'+(s.positie+s.bonus)+' punten</small></summary>'+
+    return '<details class="ander" data-blok="'+ck+'-'+h(p)+'"'+(openBlok[ck+'-'+p]?' open':'')+'><summary>'+avatar(p,'s')+h(p)+bekerHtml(p)+' <small>'+(s.positie+s.bonus)+' punten</small></summary>'+
       predKaart(ck,p)+'</details>';
   }).join('');
   var start=speeldatum(ck,0);
@@ -1656,7 +1812,7 @@ function vResult(){
 
 /* ================= meer ================= */
 function vMeer(){
-  var acc='<div class="card"><div class="account"><div class="avatar">'+h(String(ME||'?').charAt(0).toUpperCase())+'</div>'+
+  var acc='<div class="card"><div class="account">'+avatar(ME,'xl')+''+
     '<div class="wie"><b>'+h(ME)+bekerHtml(ME)+'</b><span class="mini">Seizoen '+h(S.season)+(ADMIN?' · beheerder':'')+'</span></div></div>'+
     '<div class="knoppen2"><button class="btn" data-ververs="1">Verversen</button>'+
     '<button class="btn danger" id="btnLogout">Uitloggen</button></div></div>';
