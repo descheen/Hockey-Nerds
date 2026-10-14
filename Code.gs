@@ -1087,8 +1087,9 @@ function leesCijfersPagina_(html) {
   String(html || '').split('class="st__row').slice(1).forEach(function (rij) {
     rij = rij.split('</tr>')[0];
     var naam = rij.match(/class="tn__full[^"]*"[^>]*>([^<]*)</);
-    var g = [], re = /<td class="c-num[^"]*"[^>]*>\s*([+-]?\d+)\s*</g, m;
-    while ((m = re.exec(rij))) g.push(Number(m[1]));
+    // Een negatief saldo staat er met een echt minteken (−, U+2212), niet met een streepje.
+    var g = [], re = /<td class="c-num[^"]*"[^>]*>\s*([+\-\u2212\u2013]?)\s*(\d+)\s*</g, m;
+    while ((m = re.exec(rij))) g.push((m[1] && m[1] !== '+' ? -1 : 1) * Number(m[2]));
     var punten = rij.match(/<td class="c-pts[^"]*"[^>]*>\s*(\d+)\s*</);
     if (!naam || g.length < 7 || g[4] - g[5] !== g[6]) return;
     uit.push({ naam: schoonClub_(ontHtml_(naam[1])), gespeeld: g[0], voor: g[4], tegen: g[5], punten: punten ? Number(punten[1]) : null });

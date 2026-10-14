@@ -18,7 +18,7 @@ const tn = (club) => `<span class="ml__name" data-astro-cid-35mr7t35> <span clas
 const item = (status, thuis, uit, a, b) => `<li class="ml__item" data-ms="${status}" data-ms-ko="1791722700000" data-astro-cid-35mr7t35>  <div class="ml__row" data-astro-cid-35mr7t35> <span class="ml__date">zo 11 okt</span> <a class="ml__side ml__side--home ml__side--link" href="/team/x/h1">${tn(thuis)}${a !== undefined ? `<span class="ml__line-num ml__num" data-ms-score> ${a} </span>` : ''} </a> <span class="ml__score tabular" data-ms-score>  ${a !== undefined ? `<span class="ml__score-line"> <span class="ml__num">${a}</span> <span class="ml__sep">-</span> <span class="ml__num">${b}</span> </span>` : ''}  </span> <span class="ml__state"> <span class="ml__state-main"> 14:45 </span> </span> <a class="ml__side ml__side--away ml__side--link" href="/team/y/h1">${tn(uit)} </a> </div> </li>`;
 const ldjson = (teams) => `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Stand Poule A', numberOfItems: 12,
   itemListElement: teams.map((t, i) => ({ '@type': 'ListItem', position: i + 1, item: { '@type': 'SportsTeam', name: t + ' H1', alternateName: 'H1' } })) })}</script>`;
-const strow = (teams) => teams.map((t, i) => `<tr class="st__row" data-href="/team/x/h1"> <td class="c-pos"><span class="st__pos">${String(i + 1).padStart(2, '0')}</span></td> <td class="c-team"> <a class="st__team" title="${t} H1"> <span class="tn st__name"> <span class="tn__club"><span class="tn__full">${t}</span></span><span class="tn__code">H1</span> </span> </a> </td> <td class="c-num">6</td> <td class="c-num c-x">${4 - (i % 3)}</td> <td class="c-num c-x">1</td> <td class="c-num c-x">${1 + (i % 3)}</td> <td class="c-num c-x">${30 - i}</td> <td class="c-num c-x">${5 + i}</td> <td class="c-num c-ds">${(25 - 2 * i) >= 0 ? '+' : ''}${25 - 2 * i}</td> <td class="c-pts">${18 - i}</td></tr>`).join('');
+const strow = (teams) => teams.map((t, i) => `<tr class="st__row" data-href="/team/x/h1"> <td class="c-pos"><span class="st__pos">${String(i + 1).padStart(2, '0')}</span></td> <td class="c-team"> <a class="st__team" title="${t} H1"> <span class="tn st__name"> <span class="tn__club"><span class="tn__full">${t}</span></span><span class="tn__code">H1</span> </span> </a> </td> <td class="c-num">6</td> <td class="c-num c-x">${4 - (i % 3)}</td> <td class="c-num c-x">1</td> <td class="c-num c-x">${1 + (i % 3)}</td> <td class="c-num c-x">${20 - i}</td> <td class="c-num c-x">${5 + i}</td> <td class="c-num c-ds">${(15 - 2 * i) > 0 ? '+' + (15 - 2 * i) : (15 - 2 * i) === 0 ? '0' : (i === 11 ? '-' : '\u2212') + (2 * i - 15)}</td> <td class="c-pts">${18 - i}</td></tr>`).join('');
 
 const PK_STAND = ['Hurley', 'Leiden', 'Nijmegen', 'Laren', 'Push', 'Huizen', 'Voordaan', 'Cartouche', 'Victoria', 'Gooische', 'Almere', 'Ring Pass'];
 const HK_STAND = ['Amsterdam', 'Bloemendaal', 'Den Bosch', 'Klein Zwitserland', 'Kampong', 'Oranje-Rood', 'HDM', 'SCHC', 'Pinoké', 'Rotterdam', 'Tilburg', 'Schaerweijde'];
@@ -90,9 +90,11 @@ check(vind(pkRijen, 'Voordaan', 'Huizen').uitslag === '', 'wedstrijd die nog bez
 check(vind(pkRijen, 'Gooische', 'Push').uitslag === '', 'geplande wedstrijd: geen uitslag');
 
 const cijfers = G(`leesCijfersPagina_(${JSON.stringify(PAGINA.pk)})`);
-check(cijfers.length === 12 && cijfers[0].naam === 'Hurley' && cijfers[0].voor === 30 && cijfers[0].tegen === 5 && cijfers[0].punten === 18,
-  'doelpunten per team uit de tabel (Hurley 30-5, 18 pt)');
-const kapotteTabel = PAGINA.pk.replace('<td class="c-num c-ds">+25</td>', '<td class="c-num c-ds">+99</td>');
+check(cijfers.length === 12 && cijfers[0].naam === 'Hurley' && cijfers[0].voor === 20 && cijfers[0].tegen === 5 && cijfers[0].punten === 18,
+  'doelpunten per team uit de tabel (Hurley 20-5, 18 pt)');
+check(cijfers[10].voor === 10 && cijfers[10].tegen === 15, 'negatief saldo met echt minteken (−5) wordt herkend');
+check(cijfers[11].voor === 9 && cijfers[11].tegen === 16, 'negatief saldo met gewoon streepje (-7) wordt ook herkend');
+const kapotteTabel = PAGINA.pk.replace('<td class="c-num c-ds">+15</td>', '<td class="c-num c-ds">+99</td>');
 check(G(`leesCijfersPagina_(${JSON.stringify(kapotteTabel)})`).length === 11, 'rij waarvan voor-tegen niet klopt met het saldo wordt overgeslagen');
 
 console.log('\n== Teletekst 630 ==');
