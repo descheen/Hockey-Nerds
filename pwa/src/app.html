@@ -1489,7 +1489,8 @@ function doelpuntVraag(ck,k,label,pt,soort){
   var c=S.comps[ck], l=doelpuntLeiders(ck,soort);
   return {k:k,label:label,pt:pt,vast:String(c.result[k]||'').trim(),
     voorlopig:l?l.teams.join(' / '):'', kandidaten:l?l.teams:null,
-    note:l?(soort==='voor'?l.aantal+' doelpunten':'pas '+l.aantal+' tegen')+' na '+l.gespeeld+' wedstrijden':'zodra de stand er is'};
+    note:l?(soort==='voor'?l.aantal+' doelpunten':'pas '+l.aantal+' tegen')+' na '+l.gespeeld+' wedstrijden'
+      :(ADMIN?'doelpunten nog niet opgehaald, tik bij Competitie op Nu ophalen':'zodra de doelpunten binnen zijn')};
 }
 function bonusProjectieBlok(){
   var blokken=['hk','pk'].map(function(ck){
