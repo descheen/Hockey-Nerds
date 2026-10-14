@@ -1,0 +1,14 @@
+{
+  "name": "hockey-nerds-pwa-tools",
+  "private": true,
+  "description": "Build en tests voor de PWA in docs/. Niet nodig voor Apps Script.",
+  "scripts": {
+    "build": "node build.cjs",
+    "icons": "node make-icons.cjs",
+    "mock": "node test/mock-server.cjs",
+    "test": "node test/e2e.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
