@@ -45,7 +45,7 @@ async function toestel(browser, naam, device, metOffline) {
   check(await page.evaluate(() => ME === 'Rein' && ADMIN === true), 'ME/ADMIN gezet uit login-antwoord');
   await page.waitForTimeout(200);
   check(await page.evaluate(() => window.scrollY) === 0, 'na inloggen begint de pagina bovenaan');
-  check(!!(await page.$('.hero .ronde')) && /Goede(morgen|middag|avond|nacht), Rein/.test(await page.textContent('.hallo')), 'homescherm: begroeting en speelronde');
+  check(!!(await page.$('.hero .ronde')) && /Goede(morgen|middag|navond|nacht), Rein/.test(await page.textContent('.hallo')), 'homescherm: begroeting en speelronde');
   check((await page.$$('.podium .trede')).length === 3, 'tussenstand: podium met de top 3');
   const krap = await page.evaluate(() => {
     var echt = Date.now, r = huidigeRonde(), dl = new Date(deadlineVoor('hk', r)).getTime();
@@ -70,6 +70,15 @@ async function toestel(browser, naam, device, metOffline) {
     tab = 'stand'; render(); return uit;
   });
   check(tabel.rijen === 12 && tabel.zone === 4 && /^\d+$/.test(tabel.pt) && tabel.selectsZichtbaar === 0, 'competitie: standentabel met punten en play-offzone, aanpassen ingeklapt');
+  const blokken = await page.evaluate(() => {
+    tab = 'stand'; render();
+    var titels = [...document.querySelectorAll('#view details.blok summary b')].map((b) => b.textContent);
+    var u = document.querySelector('details[data-blok="uitsplitsing"]');
+    return { titels: titels.join(','), comps: u.querySelectorAll('.statcomp').length, stats: u.querySelectorAll('.stat').length,
+      ranglijst: document.querySelectorAll('details[data-blok="ranglijst"] .statkaart').length };
+  });
+  check(blokken.titels === 'Uitsplitsing,Ranglijst,Competitiestand,Bonuspunten' && blokken.comps === 8 && blokken.stats === 24 && blokken.ranglijst === 4,
+    'stand: uitsplitsing per HK/PK (punten, perfect, rondes), eigen Ranglijst, Competitiestand: ' + JSON.stringify(blokken));
   check(tabel.meerBlokken >= 6, `meer: beheer in ${tabel.meerBlokken} inklapbare blokken`);
 
   // 3. elk tabblad: renderen, geen horizontale scroll van de pagina
