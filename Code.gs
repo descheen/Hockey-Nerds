@@ -6,7 +6,7 @@
 
 var DATA_SHEET = '__APPDATA';
 var N_MATCH = 22;
-var VERSIE = 24;
+var VERSIE = 25;
 
 // Verhoog dit als de punten veranderen, dan nemen bestaande poules ze over.
 var PTS_VERSIE = 2;
@@ -296,6 +296,7 @@ function migrate_(d) {
   d.herinnerAan = !!d.herinnerAan;
   d.autoAan = !!d.autoAan;
   d.autoBericht = d.autoBericht || '';
+  d.autoFout = d.autoFout || '';
   d.appUrl = d.appUrl || '';
   d.predsLocked = !!d.predsLocked;
   // beurtvolgorde: alleen bestaande spelers, en iedereen die ontbreekt komt achteraan
@@ -485,7 +486,7 @@ function publicState_(s, who) {
   out.pins = pinFlags;
   out.versie = VERSIE;
   // E-mailadressen zijn niemands zaak behalve die van de beheerder.
-  if (who !== s.admin) { out.emails = {}; out.appUrl = ''; out.herinnerd = {}; }
+  if (who !== s.admin) { out.emails = {}; out.appUrl = ''; out.herinnerd = {}; out.autoFout = ''; }
 
   ['hk', 'pk'].forEach(function (ck) {
     var c = out.comps[ck];
@@ -944,55 +945,214 @@ function ontHtml_(s) {
   return String(s || '')
     .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#0?39;/g, "'")
-    .replace(/&#x27;/gi, "'");
+    .replace(/&#x27;/gi, "'")
+    // Teletekst schrijft "Pinok&eacute;". Voor het herkennen tellen accenten niet mee.
+    .replace(/&([a-zA-Z])(acute|grave|uml|circ|tilde|cedil);/g, '$1');
 }
 
-/** De twaalf clubs op volgorde, zoals ze in de standentabel staan. */
-function leesStandPagina_(html) {
-  var delen = String(html || '').split('standings__row'), uit = [], gezien = {};
-  for (var i = 1; i < delen.length && uit.length < 12; i++) {
-    var m = delen[i].match(/class="team-name[^"]*"[^>]*>([^<]*)</);
-    if (!m) continue;
-    var naam = schoonClub_(ontHtml_(m[1]));
-    if (naam && !gezien[naam]) { gezien[naam] = true; uit.push(naam); }
+/** Kale vorm om namen te vergelijken: kleine letters, zonder accenten of leestekens. */
+function kaal_(s) {
+  return String(s || '').toLowerCase()
+    .replace(/[àáâãäå]/g, 'a').replace(/[èéêë]/g, 'e').replace(/[ìíîï]/g, 'i')
+    .replace(/[òóôõö]/g, 'o').replace(/[ùúûü]/g, 'u').replace(/ç/g, 'c').replace(/ñ/g, 'n')
+    .replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/** Afkortingen en andere schrijfwijzen die sites gebruiken, in kale vorm. */
+var BIJNAMEN = {
+  'kl zwit land': 'Klein Zwitserland', 'kl zwitserland': 'Klein Zwitserland', 'klein zwits': 'Klein Zwitserland',
+  'o rood': 'Oranje-Rood', 'oranje rood': 'Oranje-Rood', 's hertogenbosch': 'Den Bosch', 'hc s hertogenbosch': 'Den Bosch',
+  'schaerw': 'Schaerweijde'
+};
+
+/** Welk team uit onze lijst bedoelt een site met deze naam? Geeft '' als hij het niet weet. */
+function teamVan_(naam, teams) {
+  var k = kaal_(schoonClub_(naam));
+  if (!k) return '';
+  if (BIJNAMEN[k] && teams.indexOf(BIJNAMEN[k]) >= 0) return BIJNAMEN[k];
+  var beste = '', lengte = 0;
+  for (var i = 0; i < teams.length; i++) {
+    var t = kaal_(teams[i]);
+    if (t === k) return teams[i];
+    // "HC Tilburg" bevat "tilburg". De langste treffer wint, zodat "Rotterdam" niet bij "Rotterdam Zuid" hoort.
+    if ((' ' + k + ' ').indexOf(' ' + t + ' ') >= 0 && t.length > lengte) { beste = teams[i]; lengte = t.length; }
   }
+  return beste;
+}
+
+/** Zet een ranglijst van een site om naar onze teams. Compleet = twaalf verschillende, allemaal herkend. */
+function standVan_(namen, teams) {
+  var lijst = [], onbekend = [], gezien = {};
+  (namen || []).slice(0, 12).forEach(function (n) {
+    var t = teamVan_(n, teams);
+    if (!t || gezien[t]) { onbekend.push(String(n)); lijst.push(''); return; }
+    gezien[t] = true; lijst.push(t);
+  });
+  var compleet = lijst.length === 12 && lijst.every(Boolean);
+  return { lijst: compleet ? lijst : [], onbekend: onbekend, gevonden: (namen || []).length, compleet: compleet };
+}
+
+/** Wedstrijden van een site met onze teamnamen. Wat we niet herkennen laten we staan zoals het was. */
+function naarTeams_(lijst, teams) {
+  return (lijst || []).map(function (w) {
+    var a = teamVan_(w.thuis, teams), b = teamVan_(w.uit, teams);
+    return (a && b) ? { thuis: a, uit: b, uitslag: w.uitslag || '' } : w;
+  });
+}
+
+/**
+ * De twaalf clubs op volgorde. Drie manieren, de stevigste eerst:
+ * 1. de gestructureerde data in de pagina (schema.org ItemList), die verandert niet als de opmaak verandert;
+ * 2. de standentabel (rijen "st__row");
+ * 3. de oude opmaak van voor oktober 2026 ("standings__row").
+ */
+function leesStandPagina_(html) {
+  html = String(html || '');
+  var scripts = html.match(/<script[^>]*application\/ld\+json[^>]*>[\s\S]*?<\/script>/g) || [];
+  for (var s = 0; s < scripts.length; s++) {
+    var d;
+    try { d = JSON.parse(scripts[s].replace(/^<script[^>]*>/, '').replace(/<\/script>$/, '')); } catch (e) { continue; }
+    if (!d || d['@type'] !== 'ItemList' || !d.itemListElement || d.itemListElement.length < 12) continue;
+    var lijst = d.itemListElement.slice().sort(function (a, b) { return (a.position || 0) - (b.position || 0); })
+      .map(function (e) { return schoonClub_(ontHtml_((e.item && e.item.name) || e.name || '')); });
+    if (lijst.filter(Boolean).length >= 12) return lijst.slice(0, 12);
+  }
+  var uit = [], gezien = {};
+  function neem(delen, patroon) {
+    for (var i = 1; i < delen.length && uit.length < 12; i++) {
+      var m = delen[i].match(patroon);
+      if (!m) continue;
+      var naam = schoonClub_(ontHtml_(m[1]));
+      if (naam && !gezien[naam]) { gezien[naam] = true; uit.push(naam); }
+    }
+  }
+  neem(html.split('class="st__row'), /class="tn__full[^"]*"[^>]*>([^<]*)</);
+  if (uit.length >= 12) return uit;
+  uit = []; gezien = {};
+  neem(html.split('standings__row'), /class="team-name[^"]*"[^>]*>([^<]*)</);
   return uit;
 }
 
-/** Elke wedstrijdregel op de pagina, met uitslag als hij gespeeld is. */
+/**
+ * Elke wedstrijd op de pagina. Een uitslag nemen we alleen over als de wedstrijd
+ * echt afgelopen is (data-ms="final"). Tijdens de wedstrijd staat er al een
+ * tussenstand, en die mag nooit als uitslag in de poule komen.
+ */
 function leesRijenPagina_(html) {
-  var delen = String(html || '').split('class="ml__row'), uit = [];
-  for (var i = 1; i < delen.length; i++) {
-    var d = delen[i].slice(0, 2500);
-    var namen = [], re = /class="ml__name[^"]*"[^>]*>([^<]*)</g, m;
-    while (namen.length < 2 && (m = re.exec(d))) namen.push(schoonClub_(ontHtml_(m[1])));
-    if (namen.length < 2 || !namen[0] || !namen[1]) continue;
-    var cijfers = [], rn = /class="ml__num[^"]*"[^>]*>\s*(\d+)\s*</g, n;
-    while (cijfers.length < 2 && (n = rn.exec(d))) cijfers.push(n[1]);
-    uit.push({
-      thuis: namen[0], uit: namen[1],
-      uitslag: cijfers.length === 2 ? (cijfers[0] + '-' + cijfers[1]) : ''
-    });
+  html = String(html || '');
+  var uit = [], items = html.split('class="ml__item"');
+  if (items.length > 1) {
+    for (var i = 1; i < items.length; i++) {
+      var d = items[i], kop = d.slice(0, 400);
+      var status = (kop.match(/data-ms="([^"]*)"/) || [])[1] || '';
+      var namen = [], re = /class="tn__full[^"]*"[^>]*>([^<]*)</g, m;
+      while (namen.length < 2 && (m = re.exec(d))) namen.push(schoonClub_(ontHtml_(m[1])));
+      if (namen.length < 2 || !namen[0] || !namen[1]) continue;
+      var uitslag = '', p = d.indexOf('ml__score-line');
+      if (p >= 0 && (status === 'final' || status === '')) {
+        var stuk = d.slice(p, p + 1000), rn = /class="ml__num[^"]*"[^>]*>\s*(\d+)\s*</g, n, c = [];
+        while (c.length < 2 && (n = rn.exec(stuk))) c.push(n[1]);
+        if (c.length === 2) uitslag = c[0] + '-' + c[1];
+      }
+      uit.push({ thuis: namen[0], uit: namen[1], uitslag: uitslag });
+    }
+    return uit;
+  }
+  // oude opmaak
+  var delen = html.split('class="ml__row');
+  for (var j = 1; j < delen.length; j++) {
+    var b = delen[j].slice(0, 2500);
+    var nm = [], ro = /class="ml__name[^"]*"[^>]*>([^<]*)</g, x;
+    while (nm.length < 2 && (x = ro.exec(b))) nm.push(schoonClub_(ontHtml_(x[1])));
+    if (nm.length < 2 || !nm[0] || !nm[1]) continue;
+    var cf = [], rc = /class="ml__num[^"]*"[^>]*>\s*(\d+)\s*</g, y;
+    while (cf.length < 2 && (y = rc.exec(b))) cf.push(y[1]);
+    uit.push({ thuis: nm[0], uit: nm[1], uitslag: cf.length === 2 ? (cf[0] + '-' + cf[1]) : '' });
   }
   return uit;
 }
 
 function haalPagina_(ck) {
   var adres = BRON[ck] && BRON[ck].pagina;
-  if (!adres) return { stand: [], wedstrijden: [] };
-  var stand = [], wedstrijden = [];
+  if (!adres) return { stand: [], wedstrijden: [], fouten: [] };
+  var stand = [], wedstrijden = [], fouten = [];
   // De tweede pagina is het tabblad Uitslagen. Bestaat dat niet, dan levert hij
-  // gewoon dezelfde inhoud en gooien we de dubbelen er hieronder weer uit.
-  [adres, adres + '?tab=uitslagen'].forEach(function (u) {
+  // gewoon dezelfde inhoud en gooien we de dubbelen er later weer uit.
+  [adres, adres + '?tab=uitslagen'].forEach(function (u, nr) {
     var res;
     try { res = UrlFetchApp.fetch(u, { muteHttpExceptions: true, followRedirects: true }); }
-    catch (e) { return; }
-    if (res.getResponseCode() !== 200) return;
+    catch (e) { if (!nr) fouten.push('hockeystanden.nl niet bereikbaar (' + ((e && e.message) || e) + ')'); return; }
+    if (res.getResponseCode() !== 200) { if (!nr) fouten.push('hockeystanden.nl antwoordde met ' + res.getResponseCode()); return; }
     var html = res.getContentText();
     if (!stand.length) stand = leesStandPagina_(html);
     wedstrijden = wedstrijden.concat(leesRijenPagina_(html));
   });
-  return { stand: stand, wedstrijden: wedstrijden };
+  return { stand: stand, wedstrijden: wedstrijden, fouten: fouten };
+}
+
+/* ---- NOS Teletekst: reserve voor de Hoofdklasse heren ---- */
+
+/** Teletekstpagina per competitie. 630 is hockey, de eerste subpagina met "hoofdklasse heren". */
+var TELETEKST = { hk: '630' };
+
+function haalTeletekst_(ck) {
+  var pagina = TELETEKST[ck];
+  if (!pagina) return null;
+  var volgende = pagina;
+  for (var keer = 0; keer < 4 && volgende; keer++) {
+    var res = UrlFetchApp.fetch('https://teletekst-data.nos.nl/json/' + volgende, { muteHttpExceptions: true });
+    if (res.getResponseCode() !== 200) return null;
+    var d = JSON.parse(res.getContentText());
+    var tekst = ontHtml_(String(d.content || '').replace(/&#x[0-9a-fA-F]+;/g, ' ').replace(/<[^>]+>/g, ''));
+    if (/hoofdklasse heren/i.test(tekst)) return leesTeletekst_(tekst);
+    volgende = d.nextSubPage || '';
+  }
+  return null;
+}
+
+/**
+ * Leest een Teletekstpagina: wedstrijdregels "Thuis - Uit 3-2" en de stand in
+ * twee kolommen ("Amsterdam  3-9 HDM  3-4"), links plek 1 tot 6, rechts 7 tot 12.
+ */
+function leesTeletekst_(tekst) {
+  var wedstrijden = [], links = [], rechts = [], inStand = false;
+  String(tekst || '').split('\n').forEach(function (r) {
+    if (/^\s*stand\s*:/i.test(r)) { inStand = true; return; }
+    if (inStand) {
+      var s = r.match(/^\s*(.+?)\s+\d+\s*-\s*\d+\s+(.+?)\s+\d+\s*-\s*\d+\s*$/);
+      if (s) { links.push(s[1].trim()); rechts.push(s[2].trim()); }
+      return;
+    }
+    var w = r.match(/^\s*(\S.*?)\s+-\s+(\S.*?)\s+(\d+)\s*-\s*(\d+)\s*$/);
+    if (w) wedstrijden.push({ thuis: w[1].trim(), uit: w[2].trim(), uitslag: w[3] + '-' + w[4] });
+  });
+  return { stand: links.concat(rechts), wedstrijden: wedstrijden };
+}
+
+/**
+ * Alles wat er over één competitie bekend is, uit alle bronnen samen, in onze teamnamen.
+ * meldingen: wat er misging, zodat de beheerder het ziet in plaats van dat het stil blijft.
+ */
+function haalBronnen_(ck, c) {
+  var meldingen = [], pagina = { stand: [], wedstrijden: [], fouten: [] }, tt = null, feed = [];
+  try { pagina = haalPagina_(ck); } catch (e) { meldingen.push('hockeystanden.nl: ' + ((e && e.message) || e)); }
+  meldingen = meldingen.concat(pagina.fouten || []);
+  try { tt = haalTeletekst_(ck); } catch (e) { tt = null; }
+  try { feed = haalAgenda_(ck); } catch (e) { /* de feed is een extraatje */ }
+
+  var stand = standVan_(pagina.stand, c.teams), bron = 'hockeystanden.nl';
+  if (!stand.compleet && tt) {
+    var st2 = standVan_(tt.stand, c.teams);
+    if (st2.compleet) { stand = st2; bron = 'Teletekst'; }
+  }
+  if (!stand.compleet) {
+    meldingen.push('ranglijst ' + c.name + ' niet herkend' +
+      (stand.gevonden ? ' (' + stand.gevonden + ' teams gevonden' + (stand.onbekend.length ? ', onbekend: ' + stand.onbekend.join(', ') : '') + ')'
+                      : ' (geen ranglijst op de pagina gevonden)'));
+  }
+  var op = voegSamen_(naarTeams_(feed, c.teams), naarTeams_(pagina.wedstrijden, c.teams),
+    naarTeams_(tt ? tt.wedstrijden : [], c.teams));
+  return { stand: stand.lijst, standBron: bron, op: op, meldingen: meldingen };
 }
 
 /** Voegt bronnen samen. Een wedstrijd mét uitslag wint van dezelfde zonder. */
@@ -1018,13 +1178,12 @@ function haalVoorstellen(who, pin) {
 
   var blokken = [], fouten = [];
   ['hk', 'pk'].forEach(function (ck) {
-    var c = s.comps[ck];
-    var pagina, feed = [];
-    try { pagina = haalPagina_(ck); }
+    var c = s.comps[ck], bron;
+    try { bron = haalBronnen_(ck, c); }
     catch (e) { fouten.push(c.name + ': ' + ((e && e.message) ? e.message : e)); return; }
-    try { feed = haalAgenda_(ck); } catch (e) { /* de feed is een extraatje */ }
+    fouten = fouten.concat(bron.meldingen);
 
-    var op = voegSamen_(feed, pagina.wedstrijden);
+    var op = bron.op;
     var uitslagen = [];
     c.matches.forEach(function (m, i) {
       if (String(m.actual || '').trim()) return;
@@ -1033,10 +1192,6 @@ function haalVoorstellen(who, pin) {
       if (w && w.uitslag) uitslagen.push({ ronde: i, wedstrijd: m.home + ' - ' + m.away, uitslag: w.uitslag });
     });
 
-    // Alleen een ranglijst die volledig herkend wordt is bruikbaar.
-    var lijst = normaliseerTeams_(pagina.stand.join('\n'), c.teams);
-    if (lijst.filter(Boolean).length !== 12) lijst = [];
-
     var alles = Object.keys(op).map(function (k) { return op[k]; });
     blokken.push({
       comp: ck,
@@ -1044,12 +1199,13 @@ function haalVoorstellen(who, pin) {
       gevonden: alles.length,
       gespeeld: alles.filter(function (w) { return w.uitslag; }).length,
       uitslagen: uitslagen,
-      ranglijst: lijst
+      // Alleen een ranglijst die volledig herkend wordt is bruikbaar.
+      ranglijst: bron.stand
     });
   });
 
   if (!blokken.length) return { error: 'Ophalen lukte niet. ' + fouten.join(' ') };
-  return { blokken: blokken, waarschuwing: fouten.join(' ') };
+  return { blokken: blokken, waarschuwing: fouten.length ? 'Let op: ' + fouten.join('; ') + '.' : '' };
 }
 
 /* ============ herinnering voor het sluitmoment ============ */
@@ -1185,13 +1341,12 @@ function autoBijwerken_(s) {
   var comps = Object.keys(nodig);
   if (!comps.length) return false;
 
-  var gedaan = [];
+  var gedaan = [], meldingen = [], oudeFout = s.autoFout || '';
   comps.forEach(function (ck) {
-    var c = s.comps[ck], pagina;
-    try { pagina = haalPagina_(ck); } catch (e) { return; }
-    var feed = [];
-    try { feed = haalAgenda_(ck); } catch (e) { /* extraatje */ }
-    var op = voegSamen_(feed, pagina.wedstrijden);
+    var c = s.comps[ck], bron;
+    try { bron = haalBronnen_(ck, c); }
+    catch (e) { meldingen.push(c.name + ': ' + ((e && e.message) || e)); return; }
+    var op = bron.op;
 
     c.matches.forEach(function (m, i) {
       if (!rijp[ck + '-' + i]) return;
@@ -1202,15 +1357,22 @@ function autoBijwerken_(s) {
       }
     });
 
-    var lijst = normaliseerTeams_(pagina.stand.join('\n'), c.teams);
-    if (lijst.filter(Boolean).length === 12 && lijst.join('|') !== (c.live.standing || []).join('|')) {
+    // Een onvolledige ranglijst is alleen een probleem als we hem echt nodig hadden (de ochtendronde).
+    if (nu.getHours() === 9) meldingen = meldingen.concat(bron.meldingen);
+    var lijst = bron.stand;
+    if (lijst.length === 12 && lijst.join('|') !== (c.live.standing || []).join('|')) {
       c.live.standing = lijst;
       c.live.updated = nu.toISOString();
-      gedaan.push('ranglijst ' + c.name + ' bijgewerkt');
+      gedaan.push('ranglijst ' + c.name + ' bijgewerkt (' + bron.standBron + ')');
     }
   });
 
-  if (!gedaan.length) return false;
+  // Wat er misging bewaren we, zodat de beheerder het in de app ziet.
+  if (meldingen.length) s.autoFout = nlDatum_(nu) + ': ' + meldingen.join('; ');
+  else if (nu.getHours() === 9) s.autoFout = '';
+  var foutVeranderd = (s.autoFout || '') !== oudeFout;
+
+  if (!gedaan.length) return foutVeranderd;
   s.autoBericht = nlDatum_(nu) + ' — ' + gedaan.join('; ');
   return true;
 }
@@ -1254,12 +1416,12 @@ function normaliseerTeams_(text, teams) {
   var regels = String(text || '').split(/[\r\n\t;|]+/);
   var gevonden = [], gebruikt = {};
   regels.forEach(function (regel) {
-    var r = ' ' + regel.toLowerCase().replace(/[^a-z0-9à-ÿ ]+/g, ' ').replace(/\s+/g, ' ') + ' ';
+    var r = ' ' + kaal_(regel) + ' ';
     if (!r.trim()) return;
     var beste = null, besteLengte = 0;
     teams.forEach(function (t) {
       if (gebruikt[t]) return;
-      var naam = ' ' + t.toLowerCase().replace(/[^a-z0-9à-ÿ ]+/g, ' ').replace(/\s+/g, ' ') + ' ';
+      var naam = ' ' + kaal_(t) + ' ';
       if (r.indexOf(naam) >= 0 && naam.length > besteLengte) { beste = t; besteLengte = naam.length; }
     });
     if (beste) { gevonden.push(beste); gebruikt[beste] = true; }

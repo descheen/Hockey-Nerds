@@ -1,0 +1,45 @@
+# Controleert of Code.gs de uitslagen en standen nog kan lezen.
+# 1. de test met nagebouwde pagina's (pwa/test/ophalen.cjs);
+# 2. het echte ophalen bij hockeystanden.nl en Teletekst.
+# Elke ochtend, en bij elke wijziging van Code.gs. Faalt hij, dan mailt GitHub de eigenaar van de repo:
+# dan is een site waarschijnlijk omgebouwd en moet het ophalen worden aangepast.
+name: controle-bronnen
+on:
+  schedule:
+    - cron: '47 6 * * *'   # dagelijks rond 08:47 Nederlandse tijd
+  push:
+    paths: ['Code.gs', 'pwa/test/ophalen.cjs', '.github/workflows/controle-bronnen.yml']
+  workflow_dispatch:
+jobs:
+  controle:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Europe/Amsterdam
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test met nagebouwde pagina's
+        run: node pwa/test/ophalen.cjs
+      - name: Echt ophalen bij hockeystanden.nl en Teletekst
+        run: |
+          node - <<'JS'
+          const fs = require('fs'), vm = require('vm'), { execFileSync } = require('child_process');
+          const UA = 'Mozilla/5.0 (compatible; Google-Apps-Script)';
+          const sandbox = { console, Logger: { log() {} }, Session: { getScriptTimeZone: () => 'Europe/Amsterdam' },
+            UrlFetchApp: { fetch: (u) => {
+              const uit = execFileSync('curl', ['-sS', '-L', '-m', '60', '-A', UA, '-w', '\n%{http_code}', u], { maxBuffer: 2e7 }).toString();
+              const i = uit.lastIndexOf('\n');
+              return { getResponseCode: () => +uit.slice(i + 1), getContentText: () => uit.slice(0, i) };
+            } } };
+          vm.createContext(sandbox);
+          vm.runInContext(fs.readFileSync('Code.gs', 'utf8'), sandbox);
+          let fout = false;
+          for (const ck of ['hk', 'pk']) {
+            const r = JSON.parse(vm.runInContext(`(function(){ var s = defaults_(), b = haalBronnen_('${ck}', s.comps['${ck}']);
+              var met = Object.keys(b.op).map(function(k){return b.op[k];}).filter(function(w){return w.uitslag;});
+              return JSON.stringify({ naam: s.comps['${ck}'].name, stand: b.stand, bron: b.standBron, meldingen: b.meldingen,
+                uitslagen: met.slice(0, 6).map(function(w){return w.thuis+' - '+w.uit+' '+w.uitslag;}) }); })()`, sandbox));
+            console.log(`${r.naam}: stand ${r.stand.length}/12 (${r.bron}), ${r.uitslagen.length} uitslagen, bv. ${r.uitslagen.join(', ')}`);
+            if (r.stand.length !== 12 || r.meldingen.length) { fout = true; console.log('::error::' + r.naam + ': ' + (r.meldingen.join('; ') || 'ranglijst niet compleet')); }
+          }
+          process.exit(fout ? 1 : 0);
+          JS
