@@ -1600,6 +1600,8 @@ function vLive(){
     uitleg='<div class="card"><p class="hint" style="margin:0">De app werkt deze standen zelf bij, elke ochtend, rechtstreeks bij hockeystanden.nl. '+
       'Je hoeft hier niets te doen.'+
       (laatst?' Laatst bijgewerkt: '+h(datumTekst(laatst))+'.':' Zodra er iets gespeeld is verschijnt het hier.')+'</p>'+
+      // Ook als het vanzelf gaat: zelf kunnen kijken wat er te halen valt, voor als het een keer niet klopt.
+      '<button class="btn vol" data-adm="haalVoorstellen" style="margin-top:12px">Nu ophalen</button>'+
       (VOORSTEL?agendaBlok():'')+'</div>';
   }else if(ADMIN){
     uitleg='<div class="card"><p class="hint" style="margin:0 0 12px">Deze standen kunnen zichzelf bijhouden. Zet dat aan bij '+
