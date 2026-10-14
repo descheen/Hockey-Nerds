@@ -122,6 +122,11 @@ body{min-height:100vh;min-height:100dvh;
 .toast{bottom:calc(20px + env(safe-area-inset-bottom));max-width:calc(100vw - 32px);text-align:center}
 /* iOS zoomt in op velden kleiner dan 16px en zoomt daarna niet terug */
 @media (pointer:coarse){input,select,textarea{font-size:16px}}
+#hn-update{position:fixed;left:50%;transform:translateX(-50%);white-space:nowrap;top:calc(10px + env(safe-area-inset-top));z-index:100;
+  display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px);padding:8px 8px 8px 16px;border-radius:24px;
+  background:var(--panel2,#1e2739);border:1px solid var(--acc,#ff7a1a);color:var(--txt,#e8edf7);font-size:14px;font-weight:600;
+  box-shadow:0 6px 24px rgba(0,0,0,.45)}
+#hn-update button{flex-shrink:0;background:var(--acc,#ff7a1a);color:#1a0d02;border:0;border-radius:18px;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer}
 </style>
 <!-- ===== PWA: eind ===== -->
 `;
@@ -129,9 +134,37 @@ body{min-height:100vh;min-height:100dvh;
 const TAIL = `
 <!-- ===== PWA: begin ===== -->
 <script>
+/*
+ * Service worker + "nieuwe versie"-melding.
+ * Een geïnstalleerde app blijft soms dagen open op de achtergrond. Daarom kijken
+ * we bij terugkomen in de app (en elk half uur) of er een nieuwe versie is.
+ * Neemt een nieuwe service worker het over, dan tonen we een balk.
+ * Verversen wacht tot alles is opgeslagen.
+ */
 if ('serviceWorker' in navigator) {
+  var hadSw = !!navigator.serviceWorker.controller; // eerste installatie is geen "update"
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('sw.js').catch(function (e) { console.warn('service worker', e); });
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      var kijk = function () { reg.update().catch(function () {}); };
+      document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') kijk(); });
+      setInterval(kijk, 30 * 60 * 1000);
+    }).catch(function (e) { console.warn('service worker', e); });
+  });
+  navigator.serviceWorker.addEventListener('controllerchange', function () {
+    if (!hadSw) { hadSw = true; return; }
+    if (document.getElementById('hn-update')) return;
+    var b = document.createElement('div');
+    b.id = 'hn-update';
+    b.innerHTML = '<span>Nieuwe versie klaar</span><button type="button">Verversen</button>';
+    b.querySelector('button').onclick = function () {
+      if (typeof queue !== 'undefined' && (queue.length || sending || dirty)) {
+        if (typeof toast === 'function') toast('Even wachten, ik sla nog iets op', true);
+        if (typeof flush === 'function') flush();
+        return;
+      }
+      location.reload();
+    };
+    document.body.appendChild(b);
   });
 }
 // Bij uitloggen ook de offline-kopie van jouw gegevens van dit toestel halen.

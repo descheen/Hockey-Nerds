@@ -76,7 +76,7 @@ for (const f of ['Code.gs', 'doPost-snippet.gs']) {
 /* ---------- API: zoals script.google.com ---------- */
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.webmanifest': 'application/manifest+json', '.png': 'image/png', '.svg': 'image/svg+xml', '.json': 'application/json' };
 const antwoorden = new Map(); let teller = 0;
-let vertraging = 0, uit = false, siteUit = false; // te zetten via /__mock?delay=ms&down=1&site=0
+let vertraging = 0, uit = false, siteUit = false, swVersie = ''; // te zetten via /__mock?delay=ms&down=1&site=0&sw=x
 const log = [];
 
 http.createServer((req, res) => {
@@ -84,6 +84,7 @@ http.createServer((req, res) => {
   if (url.pathname === '/__mock') {
     if (url.searchParams.has('delay')) vertraging = +url.searchParams.get('delay');
     if (url.searchParams.has('down')) uit = url.searchParams.get('down') === '1';
+    if (url.searchParams.has('sw')) swVersie = url.searchParams.get('sw');
     if (url.searchParams.has('site')) siteUit = url.searchParams.get('site') === '0';
     res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Content-Type': 'application/json' });
     return res.end(JSON.stringify({ vertraging, uit, siteUit, log }));
@@ -123,6 +124,7 @@ http.createServer((req, res) => {
   const file = path.join(DOCS, path.normalize(p));
   if (!file.startsWith(DOCS) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); return res.end('404'); }
   let data = fs.readFileSync(file);
+  if (file.endsWith('sw.js') && swVersie) data = data.toString() + `\n// nagebootste nieuwe versie: ${swVersie}\n`;
   if (file.endsWith('index.html')) data = data.toString().replace(/var HN_API = '[^']*';/, `var HN_API = '${API_URL}';`);
   res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
   res.end(data);

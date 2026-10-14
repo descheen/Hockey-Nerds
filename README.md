@@ -93,7 +93,8 @@ node pwa/build.cjs        # maakt docs/index.html opnieuw en houdt de exec-URL
 ```
 
 Commit `docs/` en push. Het script zet ook een nieuwe cacheversie in `docs/sw.js`, zodat telefoons
-de nieuwe versie ophalen. Wijzig je `Code.gs` of `doPost`, publiceer dan opnieuw zoals in stap 2.
+de nieuwe versie ophalen. Wie de app op dat moment open heeft (ook op de achtergrond), ziet bovenaan
+de balk **"Nieuwe versie klaar · Verversen"**. Verversen wacht tot alles is opgeslagen. Wijzig je `Code.gs` of `doPost`, publiceer dan opnieuw zoals in stap 2.
 
 ---
 
@@ -116,6 +117,7 @@ eigen opslag, los van Safari of Chrome.
 - [ ] Liggend scherm: inhoud valt niet achter de notch.
 - [ ] Vliegtuigmodus aan, app openen: de app start met de melding "Offline: je ziet de laatst bekende gegevens". Wijzig iets: je ziet "geen verbinding". Vliegtuigmodus uit: de wijziging wordt alsnog opgeslagen.
 - [ ] Uitloggen, dan opnieuw inloggen.
+- [ ] Update-balk: laat de app open op de achtergrond, push een wijziging (`node pwa/build.cjs`, commit, push) en wacht 1 à 2 minuten tot Pages klaar is. Open de app opnieuw: bovenaan staat "Nieuwe versie klaar". Tik op Verversen.
 - [ ] Als beheerder: **Ophalen** (haalVoorstellen) en een beheerdersactie werken.
 
 ### Android (Chrome)
@@ -156,5 +158,5 @@ npm test                       # end-to-end op iPhone 13, Pixel 7 en iPhone SE (
 De test doet het volgende: inloggen, alle tabbladen (geen horizontale scroll), opslaan via
 applyPatches, de shim-API (handlers, user object, foutpad), een beheerdersactie, automatisch
 inloggen na herladen, de service worker en het manifest, een serverstoring tijdens het opslaan met
-herstel, offline openen uit de cache, het wissen van de cache bij uitloggen, en controleren dat elk
+herstel, offline openen uit de cache, de update-balk (die ook wacht op opslaan), het wissen van de cache bij uitloggen, en controleren dat elk
 verzoek `text/plain` is (geen preflight). Schermafbeeldingen komen in `pwa/test/shots/`.

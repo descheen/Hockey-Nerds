@@ -104,7 +104,22 @@ async function toestel(browser, naam, device, metOffline) {
     await mock('down=0&site=1');
   }
 
-  // 9. uitloggen wist de offline-kopie
+  // 9. nieuwe versie: balk verschijnt, verversen wacht op opslaan
+  check(!(await page.$('#hn-update')), 'geen update-balk bij de eerste installatie');
+  await mock('sw=' + naam + Date.now());
+  await page.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());
+  await page.waitForSelector('#hn-update', { timeout: 10000 });
+  check(true, 'nieuwe service worker: balk "Nieuwe versie klaar" verschijnt');
+  await page.screenshot({ path: path.join(SHOTS, `${naam}-update.png`) });
+  await page.evaluate(() => patch(['comps', 'hk', 'matches', 19, 'actual'], '0-0'));
+  await page.click('#hn-update button');
+  check(/Even wachten/.test(await page.textContent('#toast')) && !!(await page.$('#hn-update')), 'verversen wacht als er nog iets opgeslagen moet worden');
+  await page.waitForFunction(() => document.getElementById('status').textContent === 'opgeslagen', null, { timeout: 8000 });
+  await Promise.all([page.waitForNavigation(), page.click('#hn-update button')]);
+  await page.waitForSelector('#nav button');
+  check(!(await page.$('#hn-update')), 'na verversen: nieuwe versie geladen, balk weg');
+
+  // 10. uitloggen wist de offline-kopie
   await page.click('#btnLogout');
   await page.waitForSelector('#pick button');
   // Na het herladen haalt het inlogscherm getPlayers op (dat mag), maar jouw login/stand is weg.
