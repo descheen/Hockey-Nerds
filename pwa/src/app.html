@@ -256,6 +256,10 @@ button.taak.let{background:var(--bad-soft);color:var(--bad);border:1px solid rgb
 .stat{padding:5px 8px;border-radius:10px;background:var(--bg);line-height:1.25}
 .stat b{display:block;font-size:var(--t-l);font-weight:800;font-variant-numeric:tabular-nums}
 .stat span{font-size:11px;color:var(--faint)}
+.statcomp{font-family:var(--display);font-weight:700;font-size:12px;letter-spacing:.16em;color:var(--faint);margin:8px 0 4px}
+.statkaart .nm+.statcomp{margin-top:2px}
+.statgrid.twee{grid-template-columns:1fr 1fr!important}
+.rtot{margin-left:auto;font-family:var(--display);font-weight:800;font-size:18px}
 .stat.top b{color:var(--gold)}
 
 /* ranglijsten */
@@ -760,9 +764,9 @@ function scoreAll(){
 
 /* ================= statistiek ================= */
 /** Aantal exact goed voorspelde uitslagen, beide competities samen. */
-function perfecteScores(p){
+function perfecteScores(p,alleen){
   var n=0;
-  ['hk','pk'].forEach(function(ck){
+  (alleen?[alleen]:['hk','pk']).forEach(function(ck){
     var c=S.comps[ck], pr=c.preds[p]||blankPred();
     c.matches.forEach(function(m,i){
       if(!parseScore(m.actual))return;
@@ -772,14 +776,14 @@ function perfecteScores(p){
   return n;
 }
 /** Per gespeelde ronde de hoogste score; gelijkspel telt voor iedereen. */
-function rondeWinnaars(){
+function rondeWinnaars(alleen){
   var telling={}, rondes=0;
   S.players.forEach(function(p){telling[p]=0;});
   for(var i=0;i<22;i++){
     var iets=false, best=0, punten={};
     S.players.forEach(function(p){
       var t=0;
-      ['hk','pk'].forEach(function(ck){
+      (alleen?[alleen]:['hk','pk']).forEach(function(ck){
         var c=S.comps[ck], m=c.matches[i], pr=c.preds[p]||blankPred();
         if(!parseScore(m.actual))return;
         iets=true; t+=matchPoints(pr.wvdw[i],m.actual,S.pts);
@@ -1390,7 +1394,8 @@ function vStand(){
     (lr&&iemand?'<p class="hint legenda"><span class="rchip plus">+7</span> laatste speeldag · <span class="beweeg op">▲1</span> gestegen</p>':'')+'</div>'+
     ronde+
     blok('uitsplitsing','Uitsplitsing','waar de punten vandaan komen',uitsplitsing(sc,order))+
-    blok('rang','Ranglijst','beide competities, '+(eindstandKlaar()?'eindstand':'nu'),ranglijstBlok())+
+    blok('ranglijst','Ranglijst','punten voor teams op de juiste plek',ranglijstPuntenBlok(sc,order))+
+    blok('rang','Competitiestand','beide competities, '+(eindstandKlaar()?'eindstand':'nu'),ranglijstBlok())+
     blok('bonus','Bonuspunten','als het hierbij zou blijven',bonusProjectieBlok());
 }
 
@@ -1423,33 +1428,63 @@ function ranglijstBlok(){
   return '<div class="rangwrap">'+kolommen+'</div><p class="hint">'+voet+'</p>';
 }
 
-/** Uitsplitsing: per speler een kaartje met waar de punten vandaan komen. */
+/** Uitsplitsing: per speler per competitie de wedstrijdpunten, perfecte scores en gewonnen rondes. */
 function uitsplitsing(sc,order){
-  var rw=rondeWinnaars(), gespeeld=gespeeldeWedstrijden();
-  var rij={};
+  var gespeeld=gespeeldeWedstrijden(), rw={hk:rondeWinnaars('hk'),pk:rondeWinnaars('pk')};
+  var kols=[];
+  ['hk','pk'].forEach(function(ck){kols.push(ck+'-w',ck+'-p',ck+'-r');});
+  var rij={}, beste={};
   S.players.forEach(function(p){
-    var s=sc[p];
-    rij[p]={whk:s.hk.wvdw, wpk:s.pk.wvdw, rhk:s.hk.positie, rpk:s.pk.positie,
-      perfect:perfecteScores(p), rondes:rw.telling[p]||0};
+    rij[p]={};
+    ['hk','pk'].forEach(function(ck){
+      rij[p][ck+'-w']=sc[p][ck].wvdw; rij[p][ck+'-p']=perfecteScores(p,ck); rij[p][ck+'-r']=rw[ck].telling[p]||0;
+    });
   });
-  var kolommen=[
-    {k:'whk', kop:'WVDW HK'},{k:'wpk', kop:'WVDW PK'},{k:'perfect', kop:'Perfect'},
-    {k:'rhk', kop:'Ranglijst HK'},{k:'rpk', kop:'Ranglijst PK'},{k:'rondes', kop:'Rondes gewonnen'}
-  ];
-  var beste={};
-  kolommen.forEach(function(col){
-    var m=0; S.players.forEach(function(p){if(rij[p][col.k]>m)m=rij[p][col.k];});
-    beste[col.k]=m;
-  });
+  kols.forEach(function(k){var m=0;S.players.forEach(function(p){if(rij[p][k]>m)m=rij[p][k];});beste[k]=m;});
+  var koppen={w:'Punten',p:'Perfect score',r:'Rondes gewonnen'};
   return '<div class="stats">'+order.map(function(p){
-    return '<div class="statkaart'+(p===ME?' mine':'')+'"><div class="nm">'+avatar(p,'s')+h(p)+bekerHtml(p)+'</div><div class="statgrid">'+
-      kolommen.map(function(col){
-        var v=rij[p][col.k], top=(v>0&&v===beste[col.k]);
-        return '<div class="stat'+(top?' top':'')+'"><b>'+v+'</b><span>'+col.kop+'</span></div>';
+    return '<div class="statkaart'+(p===ME?' mine':'')+'"><div class="nm">'+avatar(p,'s')+h(p)+bekerHtml(p)+'</div>'+
+      ['hk','pk'].map(function(ck){
+        return '<div class="statcomp">'+ck.toUpperCase()+'</div><div class="statgrid">'+['w','p','r'].map(function(x){
+          var k=ck+'-'+x, v=rij[p][k], top=(v>0&&v===beste[k]);
+          return '<div class="stat'+(top?' top':'')+'"><b>'+v+'</b><span>'+koppen[x]+'</span></div>';
+        }).join('')+'</div>';
+      }).join('')+'</div>';
+  }).join('')+'</div>'+
+    '<p class="hint">'+gespeeld+' wedstrijden gespeeld. Goud is de beste van de poule. '+
+    'Perfect score telt de exact goed voorspelde uitslagen. Bij Rondes gewonnen telt een gedeelde eerste plek voor iedereen mee.</p>';
+}
+
+/** Ranglijst: per speler hoeveel teams op de juiste plek staan, en wat dat oplevert. Live, tot de eindstand vaststaat. */
+function ranglijstPuntenBlok(sc,order){
+  function telling(ck,p){
+    var c=S.comps[ck], pr=c.preds[p]||blankPred();
+    var eind=(c.result.standing||[]).some(function(t){return String(t||'').trim();});
+    var lijst=eind?c.result.standing:((c.live&&c.live.standing)||[]);
+    var n=0; for(var i=0;i<12;i++) if(lijst[i]&&eq(pr.standing[i],lijst[i])) n++;
+    return {n:n,pt:n*S.pts.positie,vast:eind,leeg:!lijst.some(Boolean)};
+  }
+  var data={}, beste={hk:0,pk:0};
+  S.players.forEach(function(p){
+    data[p]={hk:telling('hk',p),pk:telling('pk',p)};
+    ['hk','pk'].forEach(function(ck){if(data[p][ck].pt>beste[ck])beste[ck]=data[p][ck].pt;});
+  });
+  var volgorde=S.players.slice().sort(function(a,b){
+    return (data[b].hk.pt+data[b].pk.pt)-(data[a].hk.pt+data[a].pk.pt);
+  });
+  var vast=data[S.players[0]].hk.vast&&data[S.players[0]].pk.vast;
+  return '<div class="stats">'+volgorde.map(function(p){
+    return '<div class="statkaart'+(p===ME?' mine':'')+'"><div class="nm">'+avatar(p,'s')+h(p)+bekerHtml(p)+
+      '<span class="rtot">'+(data[p].hk.pt+data[p].pk.pt)+' pt</span></div><div class="statgrid twee">'+
+      ['hk','pk'].map(function(ck){
+        var d=data[p][ck], top=d.pt>0&&d.pt===beste[ck];
+        return '<div class="stat'+(top?' top':'')+'"><b>'+(d.leeg?'–':d.pt)+'</b><span>'+ck.toUpperCase()+
+          (d.leeg?' · nog geen stand':' · '+d.n+' van 12 goed'+(d.vast?' · vast':''))+'</span></div>';
       }).join('')+'</div></div>';
   }).join('')+'</div>'+
-    '<p class="hint">'+gespeeld+' wedstrijden gespeeld, '+rw.rondes+' speelrondes verwerkt. Goud is de beste van de poule. '+
-    'Perfect telt de exact goed voorspelde uitslagen. Bij Rondes gewonnen telt een gedeelde eerste plek voor iedereen mee.</p>';
+    '<p class="hint">'+(vast?'De eindstand staat vast, deze punten tellen mee.'
+      :'Live: zo zou het uitpakken als de huidige competitiestand de eindstand wordt. Elk team op de juiste plek is '+S.pts.positie+' punten. '+
+       'Ze tellen pas mee als de eindstand vaststaat.')+'</p>';
 }
 
 /**
