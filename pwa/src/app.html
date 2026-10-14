@@ -410,6 +410,8 @@ details.ander .predkaart{margin:0;padding-top:0;background:none}
 .beurtrij .btn{min-width:var(--tik);padding:0}
 .beurtrij label,label.row{min-height:var(--tik)}
 .agendaknoppen{display:grid;gap:var(--s2)}
+.foutkaart{border-color:rgba(255,107,133,.5);background:linear-gradient(160deg,var(--bad-soft),var(--surface) 60%)}
+.foutkaart h2{color:var(--bad)}
 .veldrij{margin-bottom:var(--s3)}
 .veldrij label{display:block;font-weight:700;font-size:var(--t-s);margin-bottom:4px}
 .invoerknop{display:grid;grid-template-columns:1fr auto;gap:var(--s2)}
@@ -1354,6 +1356,9 @@ function watMoetIkNog(){
     if(pr&&pr.standing.filter(Boolean).length<12)
       lijst.push({tab:'pred',tekst:'Je '+S.comps[ck].name+'-eindstand is nog niet compleet',comp:ck});
   });
+  // Lukt het automatisch ophalen niet, dan moet de beheerder dat weten, niet pas weken later.
+  if(ADMIN&&S.autoAan&&S.autoFout)
+    lijst.push({tab:'live',tekst:'Automatisch ophalen lukt niet. Tik voor de details',let:1});
   // Een gespeelde ronde zonder uitslag betekent dat de stand niet klopt.
   ['hk','pk'].forEach(function(ck){
     var c=S.comps[ck];
@@ -1600,6 +1605,8 @@ function vLive(){
     uitleg='<div class="card"><p class="hint" style="margin:0">De app werkt deze standen zelf bij, elke ochtend, rechtstreeks bij hockeystanden.nl. '+
       'Je hoeft hier niets te doen.'+
       (laatst?' Laatst bijgewerkt: '+h(datumTekst(laatst))+'.':' Zodra er iets gespeeld is verschijnt het hier.')+'</p>'+
+      // Ook als het vanzelf gaat: zelf kunnen kijken wat er te halen valt, voor als het een keer niet klopt.
+      '<button class="btn vol" data-adm="haalVoorstellen" style="margin-top:12px">Nu ophalen</button>'+
       (VOORSTEL?agendaBlok():'')+'</div>';
   }else if(ADMIN){
     uitleg='<div class="card"><p class="hint" style="margin:0 0 12px">Deze standen kunnen zichzelf bijhouden. Zet dat aan bij '+
@@ -1608,7 +1615,11 @@ function vLive(){
       '<button class="btn pri vol" data-adm="haalVoorstellen">Nu ophalen</button>'+
       (VOORSTEL?agendaBlok():'')+'</div>';
   }
-  return paginaKop('Competitie','naast ieders voorspelling')+uitleg+liveBlock(compKeuze);
+  var fout=(ADMIN&&S.autoAan&&S.autoFout)
+    ? '<div class="card foutkaart"><h2>Automatisch ophalen lukt niet</h2><p class="hint" style="margin:0">'+h(S.autoFout)+'</p>'+
+      '<p class="hint">Tik op Nu ophalen om het opnieuw te proberen. Blijft dit staan, dan is de site van de standen waarschijnlijk veranderd.</p></div>'
+    : '';
+  return paginaKop('Competitie','naast ieders voorspelling')+fout+uitleg+liveBlock(compKeuze);
 }
 
 /* ================= werkelijke eindstand ================= */
