@@ -6,7 +6,7 @@
 
 var DATA_SHEET = '__APPDATA';
 var N_MATCH = 22;
-var VERSIE = 25;
+var VERSIE = 26;
 
 // Verhoog dit als de punten veranderen, dan nemen bestaande poules ze over.
 var PTS_VERSIE = 2;
@@ -754,6 +754,11 @@ function adminAction(who, pin, action, arg) {
             oc.live.updated = new Date().toISOString();
           }
         }
+        // Doelpunten per team, alleen als het er twaalf zijn met bekende teams en echte getallen.
+        var cf = (blok.cijfers || []).filter(function (c) {
+          return c && oc.teams.indexOf(c.team) >= 0 && [c.gespeeld, c.voor, c.tegen].every(function (n) { return typeof n === 'number' && n >= 0 && n < 1000; });
+        }).map(function (c) { return { team: c.team, gespeeld: c.gespeeld, voor: c.voor, tegen: c.tegen, punten: typeof c.punten === 'number' ? c.punten : null }; });
+        if (cf.length === 12) oc.live.cijfers = cf;
       });
     }
     // --- herinnering ---
@@ -1072,10 +1077,41 @@ function leesRijenPagina_(html) {
   return uit;
 }
 
+/**
+ * Per team de cijfers uit de standentabel: gespeeld, doelpunten voor en tegen, punten.
+ * Kolommen: gespeeld, gewonnen, gelijk, verloren, voor, tegen, saldo. We nemen een rij
+ * alleen over als voor min tegen precies het saldo is; anders is de tabel veranderd.
+ */
+function leesCijfersPagina_(html) {
+  var uit = [];
+  String(html || '').split('class="st__row').slice(1).forEach(function (rij) {
+    rij = rij.split('</tr>')[0];
+    var naam = rij.match(/class="tn__full[^"]*"[^>]*>([^<]*)</);
+    var g = [], re = /<td class="c-num[^"]*"[^>]*>\s*([+-]?\d+)\s*</g, m;
+    while ((m = re.exec(rij))) g.push(Number(m[1]));
+    var punten = rij.match(/<td class="c-pts[^"]*"[^>]*>\s*(\d+)\s*</);
+    if (!naam || g.length < 7 || g[4] - g[5] !== g[6]) return;
+    uit.push({ naam: schoonClub_(ontHtml_(naam[1])), gespeeld: g[0], voor: g[4], tegen: g[5], punten: punten ? Number(punten[1]) : null });
+  });
+  return uit;
+}
+
+/** Cijfers met onze teamnamen. Alleen bruikbaar als alle twaalf teams herkend zijn. */
+function cijfersVan_(lijst, teams) {
+  var uit = [], gezien = {};
+  (lijst || []).forEach(function (c) {
+    var t = teamVan_(c.naam, teams);
+    if (!t || gezien[t]) return;
+    gezien[t] = true;
+    uit.push({ team: t, gespeeld: c.gespeeld, voor: c.voor, tegen: c.tegen, punten: c.punten });
+  });
+  return uit.length === 12 ? uit : [];
+}
+
 function haalPagina_(ck) {
   var adres = BRON[ck] && BRON[ck].pagina;
-  if (!adres) return { stand: [], wedstrijden: [], fouten: [] };
-  var stand = [], wedstrijden = [], fouten = [];
+  if (!adres) return { stand: [], wedstrijden: [], fouten: [], cijfers: [] };
+  var stand = [], wedstrijden = [], fouten = [], cijfers = [];
   // De tweede pagina is het tabblad Uitslagen. Bestaat dat niet, dan levert hij
   // gewoon dezelfde inhoud en gooien we de dubbelen er later weer uit.
   [adres, adres + '?tab=uitslagen'].forEach(function (u, nr) {
@@ -1085,9 +1121,10 @@ function haalPagina_(ck) {
     if (res.getResponseCode() !== 200) { if (!nr) fouten.push('hockeystanden.nl antwoordde met ' + res.getResponseCode()); return; }
     var html = res.getContentText();
     if (!stand.length) stand = leesStandPagina_(html);
+    if (!cijfers.length) cijfers = leesCijfersPagina_(html);
     wedstrijden = wedstrijden.concat(leesRijenPagina_(html));
   });
-  return { stand: stand, wedstrijden: wedstrijden, fouten: fouten };
+  return { stand: stand, wedstrijden: wedstrijden, fouten: fouten, cijfers: cijfers };
 }
 
 /* ---- NOS Teletekst: reserve voor de Hoofdklasse heren ---- */
@@ -1152,7 +1189,7 @@ function haalBronnen_(ck, c) {
   }
   var op = voegSamen_(naarTeams_(feed, c.teams), naarTeams_(pagina.wedstrijden, c.teams),
     naarTeams_(tt ? tt.wedstrijden : [], c.teams));
-  return { stand: stand.lijst, standBron: bron, op: op, meldingen: meldingen };
+  return { stand: stand.lijst, standBron: bron, op: op, meldingen: meldingen, cijfers: cijfersVan_(pagina.cijfers, c.teams) };
 }
 
 /** Voegt bronnen samen. Een wedstrijd mét uitslag wint van dezelfde zonder. */
@@ -1200,7 +1237,8 @@ function haalVoorstellen(who, pin) {
       gespeeld: alles.filter(function (w) { return w.uitslag; }).length,
       uitslagen: uitslagen,
       // Alleen een ranglijst die volledig herkend wordt is bruikbaar.
-      ranglijst: bron.stand
+      ranglijst: bron.stand,
+      cijfers: bron.cijfers
     });
   });
 
@@ -1364,6 +1402,11 @@ function autoBijwerken_(s) {
       c.live.standing = lijst;
       c.live.updated = nu.toISOString();
       gedaan.push('ranglijst ' + c.name + ' bijgewerkt (' + bron.standBron + ')');
+    }
+    // Doelpunten veranderen ook als de volgorde gelijk blijft. Die gebruiken de bonusvragen.
+    if (bron.cijfers.length === 12 && JSON.stringify(bron.cijfers) !== JSON.stringify(c.live.cijfers || [])) {
+      c.live.cijfers = bron.cijfers;
+      gedaan.push('doelpunten ' + c.name + ' bijgewerkt');
     }
   });
 

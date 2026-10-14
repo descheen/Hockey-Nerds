@@ -98,7 +98,8 @@ if (process.env.SEED !== 'leeg') vm.runInContext(`(function () {
       c.preds[p].standing = l; c.preds[p].kampioen = l[rnd(3)]; c.preds[p].winter = l[rnd(3)];
     });
     var live = basis.slice(); for (var k = 0; k < 5; k++) { var a = rnd(12), b = rnd(12), x = live[a]; live[a] = live[b]; live[b] = x; }
-    c.live = { standing: live, updated: '2026-10-12T08:00:00.000Z' };
+    c.live = { standing: live, updated: '2026-10-12T08:00:00.000Z',
+      cijfers: live.map(function (t, i) { return { team: t, gespeeld: 6, voor: 24 - i - rnd(3), tegen: 6 + i + rnd(3), punten: 16 - i }; }) };
   });
   writeState_(s);
 })();`, sandbox);

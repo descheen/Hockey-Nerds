@@ -168,11 +168,15 @@ async function toestel(browser, naam, device, metOffline) {
     document.body.appendChild(box);
     await new Promise((ok) => setTimeout(ok, 1500));
     const terug = !box.querySelector('img') && !box.firstChild.classList.contains('logo');
+    const klein = document.createElement('div'); klein.innerHTML = teamLogo('Kampong').replace(/src="[^"]+"/, 'src="https://example.invalid/y.png"').replace('loading="lazy"', '');
+    document.body.appendChild(klein); await new Promise((ok) => setTimeout(ok, 1500));
+    const kleinWeg = !klein.querySelector('.tlogo'); klein.remove();
     box.remove();
-    return { foto: /voordaan\.jpg/.test(voordaan) && /foto/.test(voordaan), letters: !/<img/.test(onbekend), terug };
+    return { foto: /voordaan\.jpg/.test(voordaan) && /foto/.test(voordaan), letters: !/<img/.test(onbekend), terug, kleinWeg };
   });
   check(logos.foto, 'Voordaan heeft de foto van de aanvoerder als logo');
   check(logos.letters && logos.terug, 'zonder (werkend) logo: de gekleurde badge met letters');
+  check(logos.kleinWeg, 'klein logo dat niet laadt verdwijnt helemaal (geen leeg wit vakje)');
 
   // 3d. status: offline en weer online
   await page.evaluate(() => window.dispatchEvent(new Event('offline')));

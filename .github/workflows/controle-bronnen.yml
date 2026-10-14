@@ -36,9 +36,10 @@ jobs:
           for (const ck of ['hk', 'pk']) {
             const r = JSON.parse(vm.runInContext(`(function(){ var s = defaults_(), b = haalBronnen_('${ck}', s.comps['${ck}']);
               var met = Object.keys(b.op).map(function(k){return b.op[k];}).filter(function(w){return w.uitslag;});
-              return JSON.stringify({ naam: s.comps['${ck}'].name, stand: b.stand, bron: b.standBron, meldingen: b.meldingen,
+              return JSON.stringify({ naam: s.comps['${ck}'].name, stand: b.stand, bron: b.standBron, meldingen: b.meldingen, cijfers: b.cijfers.length,
                 uitslagen: met.slice(0, 6).map(function(w){return w.thuis+' - '+w.uit+' '+w.uitslag;}) }); })()`, sandbox));
-            console.log(`${r.naam}: stand ${r.stand.length}/12 (${r.bron}), ${r.uitslagen.length} uitslagen, bv. ${r.uitslagen.join(', ')}`);
+            console.log(`${r.naam}: stand ${r.stand.length}/12 (${r.bron}), doelpunten ${r.cijfers}/12, ${r.uitslagen.length} uitslagen, bv. ${r.uitslagen.join(', ')}`);
+            if (r.cijfers !== 12) { fout = true; console.log('::error::' + r.naam + ': doelpunten per team niet gevonden (tabel veranderd?)'); }
             if (r.stand.length !== 12 || r.meldingen.length) { fout = true; console.log('::error::' + r.naam + ': ' + (r.meldingen.join('; ') || 'ranglijst niet compleet')); }
           }
           process.exit(fout ? 1 : 0);
