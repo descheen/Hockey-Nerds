@@ -18,7 +18,7 @@ const tn = (club) => `<span class="ml__name" data-astro-cid-35mr7t35> <span clas
 const item = (status, thuis, uit, a, b) => `<li class="ml__item" data-ms="${status}" data-ms-ko="1791722700000" data-astro-cid-35mr7t35>  <div class="ml__row" data-astro-cid-35mr7t35> <span class="ml__date">zo 11 okt</span> <a class="ml__side ml__side--home ml__side--link" href="/team/x/h1">${tn(thuis)}${a !== undefined ? `<span class="ml__line-num ml__num" data-ms-score> ${a} </span>` : ''} </a> <span class="ml__score tabular" data-ms-score>  ${a !== undefined ? `<span class="ml__score-line"> <span class="ml__num">${a}</span> <span class="ml__sep">-</span> <span class="ml__num">${b}</span> </span>` : ''}  </span> <span class="ml__state"> <span class="ml__state-main"> 14:45 </span> </span> <a class="ml__side ml__side--away ml__side--link" href="/team/y/h1">${tn(uit)} </a> </div> </li>`;
 const ldjson = (teams) => `<script type="application/ld+json">${JSON.stringify({ '@context': 'https://schema.org', '@type': 'ItemList', name: 'Stand Poule A', numberOfItems: 12,
   itemListElement: teams.map((t, i) => ({ '@type': 'ListItem', position: i + 1, item: { '@type': 'SportsTeam', name: t + ' H1', alternateName: 'H1' } })) })}</script>`;
-const strow = (teams) => teams.map((t, i) => `<tr class="st__row" data-href="/team/x/h1"> <td class="c-pos"><span class="st__pos">${String(i + 1).padStart(2, '0')}</span></td> <td class="c-team"> <a class="st__team" title="${t} H1"> <span class="tn st__name"> <span class="tn__club"><span class="tn__full">${t}</span></span><span class="tn__code">H1</span> </span> </a> </td> <td class="c-pts">18</td></tr>`).join('');
+const strow = (teams) => teams.map((t, i) => `<tr class="st__row" data-href="/team/x/h1"> <td class="c-pos"><span class="st__pos">${String(i + 1).padStart(2, '0')}</span></td> <td class="c-team"> <a class="st__team" title="${t} H1"> <span class="tn st__name"> <span class="tn__club"><span class="tn__full">${t}</span></span><span class="tn__code">H1</span> </span> </a> </td> <td class="c-num">6</td> <td class="c-num c-x">${4 - (i % 3)}</td> <td class="c-num c-x">1</td> <td class="c-num c-x">${1 + (i % 3)}</td> <td class="c-num c-x">${20 - i}</td> <td class="c-num c-x">${5 + i}</td> <td class="c-num c-ds">${(15 - 2 * i) > 0 ? '+' + (15 - 2 * i) : (15 - 2 * i) === 0 ? '0' : (i === 11 ? '-' : '\u2212') + (2 * i - 15)}</td> <td class="c-pts">${18 - i}</td></tr>`).join('');
 
 const PK_STAND = ['Hurley', 'Leiden', 'Nijmegen', 'Laren', 'Push', 'Huizen', 'Voordaan', 'Cartouche', 'Victoria', 'Gooische', 'Almere', 'Ring Pass'];
 const HK_STAND = ['Amsterdam', 'Bloemendaal', 'Den Bosch', 'Klein Zwitserland', 'Kampong', 'Oranje-Rood', 'HDM', 'SCHC', 'Pinoké', 'Rotterdam', 'Tilburg', 'Schaerweijde'];
@@ -89,6 +89,14 @@ check(vind(pkRijen, 'Laren', 'Hurley').uitslag === '2-3', 'afgelopen wedstrijd: 
 check(vind(pkRijen, 'Voordaan', 'Huizen').uitslag === '', 'wedstrijd die nog bezig is: GEEN uitslag (geen tussenstand overnemen)');
 check(vind(pkRijen, 'Gooische', 'Push').uitslag === '', 'geplande wedstrijd: geen uitslag');
 
+const cijfers = G(`leesCijfersPagina_(${JSON.stringify(PAGINA.pk)})`);
+check(cijfers.length === 12 && cijfers[0].naam === 'Hurley' && cijfers[0].voor === 20 && cijfers[0].tegen === 5 && cijfers[0].punten === 18,
+  'doelpunten per team uit de tabel (Hurley 20-5, 18 pt)');
+check(cijfers[10].voor === 10 && cijfers[10].tegen === 15, 'negatief saldo met echt minteken (−5) wordt herkend');
+check(cijfers[11].voor === 9 && cijfers[11].tegen === 16, 'negatief saldo met gewoon streepje (-7) wordt ook herkend');
+const kapotteTabel = PAGINA.pk.replace('<td class="c-num c-ds">+15</td>', '<td class="c-num c-ds">+99</td>');
+check(G(`leesCijfersPagina_(${JSON.stringify(kapotteTabel)})`).length === 11, 'rij waarvan voor-tegen niet klopt met het saldo wordt overgeslagen');
+
 console.log('\n== Teletekst 630 ==');
 const tt = G(`leesTeletekst_(ontHtml_(${JSON.stringify(TT630)}))`);
 check(tt.stand.length === 12, `stand: 12 regels (${tt.stand.length})`);
@@ -102,6 +110,7 @@ console.log('\n== alles samen (haalBronnen_) ==');
 G(`var _s = defaults_();`);
 const pkBron = G(`haalBronnen_('pk', _s.comps.pk)`);
 check(pkBron.stand.length === 12 && pkBron.stand[0] === 'Hurley', 'Promotieklasse: ranglijst compleet');
+check(pkBron.cijfers.length === 12 && pkBron.cijfers[11].team === 'Ring Pass', 'Promotieklasse: doelpunten voor alle 12 teams, met onze teamnamen');
 check(pkBron.meldingen.length === 0, 'Promotieklasse: geen meldingen' + (pkBron.meldingen.length ? ': ' + pkBron.meldingen : ''));
 const hkBron = G(`haalBronnen_('hk', _s.comps.hk)`);
 check(hkBron.op[G(`sleutel_('HDM','Bloemendaal')`)].uitslag === '2-3', 'Hoofdklasse: uitslag van Teletekst komt erbij (HDM - Bloemendaal 2-3)');
@@ -127,6 +136,7 @@ check(G(`_a.comps.hk.matches[3].actual`) === '2-3', 'uitslag Hoofdklasse ingevul
 check(G(`_a.comps.pk.live.standing[0]`) === 'Hurley', 'ranglijst Promotieklasse bijgewerkt');
 check(G(`_a.comps.hk.live.standing[3]`) === 'Klein Zwitserland', 'ranglijst Hoofdklasse bijgewerkt');
 check(G(`_a.autoFout`) === '', 'geen foutmelding als alles lukt');
+check(G(`_a.comps.pk.live.cijfers.length`) === 12 && G(`_a.comps.pk.live.cijfers[0].tegen`) === 5, 'doelpunten bewaard voor de bonusvragen');
 
 internet = 'nieuwe-opmaak';
 G(`var _b = defaults_(); _b.autoAan = true; _b.autoFout = '';`);
@@ -138,6 +148,11 @@ check(/niet bereikbaar/.test(voorstel.waarschuwing || '') || /lukte niet/.test(v
 internet = 'werkt';
 const goed = G(`haalVoorstellen('Rein','1')`);
 check(goed.blokken.length === 2 && goed.blokken[1].ranglijst.length === 12, 'Nu ophalen: voorstel met complete ranglijst');
+check(goed.blokken[1].cijfers.length === 12, 'Nu ophalen: voorstel met doelpunten');
+const over = G(`adminAction('Rein','1','neemOver',${JSON.stringify({ blokken: [{ comp: 'pk', uitslagen: [], ranglijst: goed.blokken[1].ranglijst, cijfers: goed.blokken[1].cijfers }] })})`);
+check(!over.error && over.state.comps.pk.live.cijfers.length === 12, 'Overnemen bewaart ook de doelpunten');
+const raar = G(`adminAction('Rein','1','neemOver',${JSON.stringify({ blokken: [{ comp: 'pk', cijfers: [{ team: 'Bestaat niet', gespeeld: 1, voor: 1, tegen: 1 }] }] })})`);
+check(raar.state.comps.pk.live.cijfers.length === 12, 'onzin-cijfers worden genegeerd');
 check(G(`publicState_(readState_(), 'Tijn').autoFout`) === '', 'foutmelding alleen zichtbaar voor de beheerder');
 
 console.log(fouten ? `\n${fouten} FOUT(EN)` : '\nAlles groen.');
