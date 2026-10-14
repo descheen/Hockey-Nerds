@@ -12,8 +12,8 @@
 @font-face{font-family:'Barlow Condensed';font-style:normal;font-weight:800;font-display:swap;src:url(fonts/barlow-condensed-latin-800-normal.woff2) format('woff2')}
 :root{
   color-scheme:dark;
-  --bg:#0b0f17; --surface:#131a26; --surface-2:#1a2231; --surface-3:#222c3e;
-  --line:#26314a; --line-soft:#1d2637;
+  --bg:#06080d; --surface:#0f141e; --surface-2:#161d2b; --surface-3:#1f2839;
+  --line:#26324c; --line-soft:#1a2335;
   --txt:#eef2f9; --dim:#a3aec4; --faint:#7b88a3;
   --acc:#ff7a1a; --acc-txt:#ff9447; --acc-soft:rgba(255,122,26,.13); --acc-line:rgba(255,122,26,.55); --on-acc:#1c0e03;
   --ok:#3ddba5; --ok-soft:rgba(61,219,165,.12); --bad:#ff6b85; --bad-soft:rgba(255,107,133,.12);
@@ -21,7 +21,8 @@
   /* oude namen, zodat bestaande opmaak in de code blijft kloppen */
   --panel:var(--surface); --panel2:var(--surface-2); --acc2:var(--ok);
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px;
-  --r-s:10px; --r-m:14px; --r-l:20px;
+  --r-s:6px; --r-m:8px; --r-l:12px;
+  --cyan:#45d8ff; --glow:0 0 18px rgba(255,122,26,.45);
   --t-xs:12px; --t-s:13px; --t-m:15px; --t-l:17px; --t-xl:22px; --t-xxl:32px;
   --tik:44px; --balk:58px;
   --display:'Barlow Condensed','Arial Narrow',-apple-system,sans-serif;
@@ -595,6 +596,69 @@ details.blok summary b{font-family:var(--display);font-weight:700;font-size:20px
 
 /* login */
 .login.veld:before{top:calc(var(--top) + 2vh);right:50%;margin-right:-190px;opacity:.06}
+
+/* ===== HUD: scherper, strakker, een tikje toekomst ===== */
+body{background:
+  radial-gradient(900px 520px at 90% -12%,rgba(255,122,26,.11),transparent 62%),
+  radial-gradient(700px 520px at -15% 35%,rgba(69,216,255,.06),transparent 60%),
+  linear-gradient(rgba(140,170,220,.045) 1px,transparent 1px) 0 0/26px 26px,
+  linear-gradient(90deg,rgba(140,170,220,.045) 1px,transparent 1px) 0 0/26px 26px,
+  var(--bg);background-attachment:fixed}
+.topbar{background:rgba(6,8,13,.78);border-bottom:0}
+.topbar:after{content:'';position:absolute;left:0;right:0;bottom:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,122,26,.6) 20%,rgba(69,216,255,.35) 75%,transparent)}
+.merk{font-family:var(--display);font-size:22px;text-transform:uppercase;letter-spacing:.06em}
+.merk b{text-shadow:var(--glow)}
+.tabbar{background:rgba(6,8,13,.88);border-top:1px solid rgba(255,255,255,.06)}
+#nav button.on:before{top:0;width:30px;height:2px;margin-left:-15px;border-radius:0 0 2px 2px;background:var(--acc);box-shadow:0 0 12px 1px rgba(255,122,26,.8);animation:none}
+#nav button.on svg{filter:drop-shadow(0 0 7px rgba(255,122,26,.65))}
+.comptabs button.on:after{left:30%;right:30%;height:2px;border-radius:0;box-shadow:0 0 12px rgba(255,122,26,.8)}
+
+.card,details.blok{background:linear-gradient(180deg,rgba(255,255,255,.028),rgba(255,255,255,0) 120px),var(--surface);
+  border:1px solid var(--line-soft);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 10px 30px -18px rgba(0,0,0,.9)}
+.paginakop{flex-wrap:wrap;row-gap:0}
+.paginakop h1{font-size:clamp(30px,10.5vw,40px);letter-spacing:.02em;max-width:100%;background:linear-gradient(180deg,#fff 30%,#9fb0cc);-webkit-background-clip:text;background-clip:text;color:transparent}
+.paginakop .sub{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:13px;color:var(--faint)}
+.sectie{display:flex;align-items:center;font-size:14px;letter-spacing:.2em}
+.sectie:before{width:6px;height:6px;border-radius:1px;transform:rotate(45deg);margin:0 10px 0 2px;box-shadow:var(--glow)}
+.sectie:after{content:'';flex:1;height:1px;margin-left:12px;background:linear-gradient(90deg,var(--line),transparent)}
+
+.btn{border-radius:var(--r-s);font-family:var(--display);font-size:17px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  background:rgba(255,255,255,.03);border-color:var(--line)}
+.btn:active{background:var(--surface-3)}
+.btn.pri{border:0;color:var(--on-acc);background:linear-gradient(100deg,#ffa04d,#ff7a1a 45%,#ff5a1f);
+  clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);border-radius:0}
+.btn.link{font-family:inherit;text-transform:none;letter-spacing:0;font-size:var(--t-m)}
+.btn.mini{font-size:15px}
+input,select,textarea{background:rgba(0,0,0,.35)}
+input:focus,select:focus,textarea:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(69,216,255,.14),0 0 16px rgba(69,216,255,.18)}
+.seg{border-radius:var(--r-m)}
+.seg button{border-radius:var(--r-s);font-family:var(--display);font-size:15px;text-transform:uppercase;letter-spacing:.06em}
+.seg button.on{box-shadow:inset 0 -2px 0 var(--acc),inset 0 1px 0 rgba(255,255,255,.05)}
+.tag{border-radius:4px;font-family:var(--display);font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+
+.hero{border-radius:14px;border:1px solid transparent;
+  background:linear-gradient(155deg,#1a2234,var(--surface) 70%) padding-box,
+    linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.03) 40%,rgba(69,216,255,.25)) border-box}
+.hero.actie{background:linear-gradient(155deg,#2a1608 0%,#16100c 40%,var(--surface) 85%) padding-box,
+    linear-gradient(135deg,var(--acc),rgba(255,122,26,.12) 45%,rgba(69,216,255,.4)) border-box;
+  box-shadow:0 0 40px -14px rgba(255,122,26,.55)}
+.herokop .ronde{letter-spacing:.02em}
+.lrow{border-radius:var(--r-m);background:linear-gradient(90deg,var(--surface-2),rgba(22,29,43,.6))}
+.lrow.mine{box-shadow:inset 2px 0 0 var(--acc),-6px 0 18px -10px rgba(255,122,26,.9)}
+.ptot,.trede .ppt{text-shadow:0 0 18px rgba(255,255,255,.12)}
+.blokje{border-radius:6px 6px 2px 2px;box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 26px -8px currentColor}
+.t1 .blokje{box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 0 34px -6px rgba(255,204,85,.55)}
+.av{box-shadow:0 0 0 2px rgba(255,255,255,.08),0 0 14px -4px var(--k)}
+.badge{border-radius:12px}
+.rondekaart{border-radius:var(--r-l)}
+.strij.zone:before{box-shadow:0 0 10px rgba(255,122,26,.8)}
+button.taak:first-child:not(.let){background:linear-gradient(100deg,#ffa04d,#ff7a1a 45%,#ff5a1f);border-radius:0;
+  clip-path:polygon(14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%,0 14px)}
+button.taak{font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:.03em}
+.sc input{border-radius:8px;background:rgba(0,0,0,.45);box-shadow:inset 0 2px 8px rgba(0,0,0,.6)}
+.sc.groot input{border-radius:10px}
+.sc input[value]:not([value=""]){border-color:rgba(255,122,26,.55);color:#fff;text-shadow:0 0 14px rgba(255,122,26,.55)}
 
 @media(prefers-reduced-motion:reduce){
   *,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
