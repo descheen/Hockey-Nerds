@@ -617,6 +617,19 @@ details.blok summary b{font-family:var(--display);font-weight:700;font-size:20px
 .wedstrijd .duel .teams i.vs{font-family:var(--display);font-style:normal;font-weight:800;font-size:20px;color:var(--faint);align-self:center;margin-top:-26px;letter-spacing:.05em}
 .wedstrijd .duel{background:radial-gradient(90% 120% at 50% 0%,rgba(255,255,255,.04),transparent 70%)}
 
+/* clublogo's */
+.badge b{font-weight:inherit}
+.badge.logo{background:#fff;padding:7px;overflow:hidden}
+.badge.logo b{display:none}
+.badge img{width:100%;height:100%;object-fit:contain;display:block}
+.badge.foto{padding:0;box-shadow:0 0 0 2px var(--acc),0 8px 18px rgba(0,0,0,.35)}
+.badge.foto img{object-fit:cover}
+.tlogo{width:22px;height:22px;border-radius:6px;background:#fff;padding:2px;flex:none;display:inline-flex;overflow:hidden}
+.tlogo img{width:100%;height:100%;object-fit:contain;display:block}
+.tlogo.foto{padding:0;border-radius:50%}.tlogo.foto img{object-fit:cover}
+.tm,.rangrij .tm,.predrij .ro{display:inline-flex;align-items:center;gap:8px;min-width:0}
+.predkaart.lees .predrij .ro{display:flex}
+
 /* exact goed */
 .exact{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:999px;background:linear-gradient(90deg,#ffdc7d,#e0a93a);
   color:#2a1a00;font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.06em;text-transform:uppercase;animation:tik .5s var(--zacht)}
@@ -1166,13 +1179,56 @@ function spelerKleur(p){
 function avatar(p,maat){
   return '<span class="av'+(maat?' av-'+maat:'')+'" style="--k:'+spelerKleur(p)+'" aria-hidden="true">'+h(String(p||'?').charAt(0).toUpperCase())+'</span>';
 }
-/** Een clubbadge: twee of drie letters op een eigen kleur, afgeleid van de naam. */
+/**
+ * Clublogo's. De officiële logo's komen van hockeystanden.nl (geen kopieën in deze repo).
+ * Voordaan heeft op verzoek van de poule een eigen "logo": de aanvoerder.
+ * Lukt een logo niet, dan blijft de gekleurde badge met letters staan.
+ */
+var CLUBLOGO={
+  "Amsterdam":"https://hockeystanden.nl/i/logo/team/2048/a0d13bba7b77c627.jpg",
+  "Bloemendaal":"https://hockeystanden.nl/i/logo/team/2532/1394fc75aaf52579.jpg",
+  "Den Bosch":"https://hockeystanden.nl/i/logo/team/8730/12c83b2cd0242b66.jpg",
+  "Klein Zwitserland":"https://hockeystanden.nl/i/logo/team/4770/ed148df76fb4fe23.jpg",
+  "Kampong":"https://hockeystanden.nl/i/logo/team/4603/b89c9f5560d723d0.jpg",
+  "Oranje-Rood":"https://hockeystanden.nl/i/logo/team/25649/ed500f30f93e28f1.png",
+  "HDM":"https://hockeystanden.nl/i/logo/team/8162/13a1f54f15c26ba7.jpg",
+  "SCHC":"https://hockeystanden.nl/i/logo/team/6840/613b7bd28c29a625.jpg",
+  "Pinoké":"https://hockeystanden.nl/i/logo/team/6012/3f564937ac168a21.jpg",
+  "Rotterdam":"https://hockeystanden.nl/i/logo/team/6642/bab11d0b134ddd49.jpg",
+  "Tilburg":"https://hockeystanden.nl/i/logo/team/20088/9a22c6399f87318c.jpg",
+  "Schaerweijde":"https://hockeystanden.nl/i/logo/team/6783/f6ef01e07d902fea.jpg",
+  "Hurley":"https://hockeystanden.nl/i/logo/team/4504/a7916046c42a4bea.jpg",
+  "Leiden":"https://hockeystanden.nl/i/logo/team/4984/6fef6d9e52c296bf.jpg",
+  "Nijmegen":"https://hockeystanden.nl/i/logo/team/5708/a9fee86178caf7c3.jpg",
+  "Laren":"https://hockeystanden.nl/i/logo/team/4904/4903190f1934db1a.png",
+  "Push":"https://hockeystanden.nl/i/logo/team/6166/225e431bd47e3571.png",
+  "Huizen":"https://hockeystanden.nl/i/logo/team/4466/95135d750f928c4e.jpg",
+  "Cartouche":"https://hockeystanden.nl/i/logo/team/2722/aeaa8c1b15898287.png",
+  "Victoria":"https://hockeystanden.nl/i/logo/team/7439/d46dc9a27d37e14e.png",
+  "Gooische":"https://hockeystanden.nl/i/logo/team/3649/c4acf5cf9d7bbb41.jpg",
+  "Almere":"https://hockeystanden.nl/i/logo/team/1907/1fe6910f572eb0fe.jpg",
+  "Ring Pass":"https://hockeystanden.nl/i/logo/team/6429/fbb2348ae09acb29.jpg",
+  "Voordaan":"icons/clubs/voordaan.jpg"
+};
+var EIGEN_FOTO={'Voordaan':true};
+function logoImg(team){
+  var src=CLUBLOGO[team]; if(!src)return '';
+  return '<img src="'+h(src)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" '+
+    'onerror="var p=this.parentNode;p.classList.remove(\'logo\',\'foto\');this.remove()">';
+}
+/** Een clubbadge: het logo, of twee of drie letters op een eigen kleur als er (nog) geen logo is. */
 function clubBadge(team){
   var t=String(team||''), tint=0;
   for(var i=0;i<t.length;i++)tint=(tint*31+t.charCodeAt(i))%360;
   var woorden=t.replace(/[^A-Za-zÀ-ÿ ]+/g,' ').trim().split(/\s+/);
   var af=t.length<=4?t:(woorden.length>1?woorden[0].charAt(0)+woorden[1].charAt(0):t.slice(0,2));
-  return '<span class="badge" style="--h:'+tint+'" aria-hidden="true">'+h(af.toUpperCase())+'</span>';
+  var img=logoImg(t);
+  return '<span class="badge'+(img?' logo':'')+(img&&EIGEN_FOTO[t]?' foto':'')+'" style="--h:'+tint+'" aria-hidden="true"><b>'+h(af.toUpperCase())+'</b>'+img+'</span>';
+}
+/** Klein logo voor naast een teamnaam in lijsten. */
+function teamLogo(team){
+  var img=logoImg(String(team||''));
+  return img?'<span class="tlogo'+(EIGEN_FOTO[team]?' foto':'')+'" aria-hidden="true">'+img+'</span>':'';
 }
 /** " · je staat 2e" (of gedeeld), zodra er punten zijn. */
 function mijnPlek(){
@@ -1245,7 +1301,7 @@ function ranglijstBlok(){
     var lijst=klaar?eind:((c.live&&c.live.standing)||[]).map(function(t){return String(t||'').trim();});
     var rijen=lijst.map(function(t,i){
       if(!t)return '';
-      return '<div class="rangrij'+(i===0?' kop':'')+'"><span class="nr">'+(i+1)+'</span><span>'+h(t)+'</span></div>';
+      return '<div class="rangrij'+(i===0?' kop':'')+'"><span class="nr">'+(i+1)+'</span><span class="tm">'+teamLogo(t)+h(t)+'</span></div>';
     }).filter(Boolean).join('');
     if(!rijen)leeg++;
     return '<div><h3>'+h(c.name)+'</h3>'+
@@ -1735,7 +1791,7 @@ function predKaart(ck,p){
     var goed=eq(t,c.result.standing[i]), nuGoed=!eindstandBekend&&!!t&&eq(t,L[i]);
     var cel=mag
       ? '<select data-a="standing" data-c="'+ck+'" data-p="'+h(p)+'" data-i="'+i+'" aria-label="Plek '+(i+1)+'">'+teamOpts(c.teams,t)+'</select>'
-      : '<span class="ro'+(goed?' goed':'')+(nuGoed?' nu':'')+'">'+(h(t)||'–')+(nuGoed?'<i class="nugoed">staat nu goed</i>':'')+'</span>';
+      : '<span class="ro'+(goed?' goed':'')+(nuGoed?' nu':'')+'">'+teamLogo(t)+(h(t)||'–')+(nuGoed?'<i class="nugoed">staat nu goed</i>':'')+'</span>';
     return '<div class="predrij'+(i===0?' top':'')+(dup[i]?' fout':'')+'"><span class="nr">'+(i+1)+'</span>'+cel+'</div>';
   }).join('');
 
@@ -1802,7 +1858,7 @@ function liveBlock(ck){
   var rijen=L.standing.map(function(t,i){
     var cel=ADMIN
       ? '<select data-a="lstanding" data-c="'+ck+'" data-i="'+i+'" class="'+(dup[i]?'dup':'')+'" aria-label="Plek '+(i+1)+'">'+teamOpts(c.teams,t)+'</select>'
-      : '<span class="tm">'+(h(t)||'–')+'</span>';
+      : '<span class="tm">'+teamLogo(t)+(h(t)||'–')+'</span>';
     var wie=S.players.filter(function(p){
       var pr=c.preds[p]; return pr&&eq(pr.standing[i],t);
     });
