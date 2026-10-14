@@ -15,7 +15,8 @@ pwa/                 build-script, icoon-generator en tests (niet nodig in Apps 
 ## Hoe het werkt
 
 De PWA heeft een eigen, mobile-first ontwerp (`pwa/src/app.html`): onderbalk met Stand, Wedstrijd,
-Voorspellingen, Competitie en Meer, kaarten in plaats van brede tabellen, één speelronde per scherm.
+Voorspellingen, Competitie en Meer, Hoofdklasse en Promotieklasse als aparte tabbladen bovenin,
+kaarten in plaats van brede tabellen en één speelronde per scherm.
 De logica is dezelfde als in `Index.html`: wachtrij, opslaan, rechten, puntentelling en dezelfde
 aanroepen naar `Code.gs`. Een kleine fetch-shim vervangt `google.script.run`, en de code merkt het
 verschil niet: `withSuccessHandler`, `withFailureHandler` en

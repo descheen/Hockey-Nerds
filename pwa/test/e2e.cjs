@@ -94,7 +94,21 @@ async function toestel(browser, naam, device, metOffline) {
     el.dispatchEvent(new TouchEvent('touchstart', { touches: [t(200)], changedTouches: [t(200)], bubbles: true }));
     el.dispatchEvent(new TouchEvent('touchend', { touches: [], changedTouches: [t(200 + dx)], bubbles: true }));
   }, dx);
-  check((await page.$$('.wedstrijd')).length === 2, 'één speelronde per scherm (twee wedstrijdkaarten)');
+  check((await page.$$('.wedstrijd')).length === 1, 'één speelronde en één competitie per scherm');
+  // Hoofdklasse en Promotieklasse als aparte tabbladen
+  const tabsZichtbaar = async () => page.evaluate(() => [...document.querySelectorAll('#comptabs button')].filter((b) => b.offsetParent).map((b) => b.getBoundingClientRect().height));
+  const ct = await tabsZichtbaar();
+  check(ct.length === 2 && ct.every((x) => x >= 44), 'competitietabbladen bovenin, minstens 44px hoog');
+  const compNaam = () => page.$eval('.wedstrijd .wkop b', (b) => b.textContent);
+  check(await compNaam() === 'Hoofdklasse', 'tabblad Hoofdklasse toont de Hoofdklasse');
+  await page.click('#comptabs [data-comp="pk"]');
+  check(await compNaam() === 'Promotieklasse', 'tabblad Promotieklasse toont de Promotieklasse');
+  await page.click('#nav button[data-tab="pred"]');
+  check(await page.$eval('#comptabs button.on', (b) => b.dataset.comp) === 'pk', 'de gekozen competitie blijft staan op een ander scherm');
+  await page.click('#nav button[data-tab="stand"]');
+  check((await tabsZichtbaar()).length === 0, 'op Stand geen competitietabbladen (dat is het totaal)');
+  await page.click('#nav button[data-tab="wvdw"]');
+  await page.click('#comptabs [data-comp="hk"]');
   await zwiep(-150);
   check(await page.evaluate(() => huidigeVenster()) === r0 + 1, 'naar links zwiepen: volgende ronde');
   await zwiep(150);
