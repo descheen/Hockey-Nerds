@@ -550,12 +550,17 @@ details.blok summary b{font-family:var(--display);font-weight:700;font-size:20px
 
 /* clublogo's */
 .badge b{font-weight:inherit}
-.badge.logo{background:#fff;padding:7px;overflow:hidden}
-.badge.logo b{display:none}
+/* Tot het logo binnen is blijven de letters op kleur staan, geen leeg wit vlak. */
+.badge.logo{position:relative;overflow:hidden}
+.badge.logo img{position:absolute;inset:7px;width:calc(100% - 14px);height:calc(100% - 14px);opacity:0;transition:opacity .2s}
+.badge.logo.ok{background:#fff}
+.badge.logo.ok b{visibility:hidden}
+.badge.logo.ok img{opacity:1}
 .badge img{width:100%;height:100%;object-fit:contain;display:block}
 .badge.foto{padding:0;box-shadow:0 0 0 2px var(--acc),0 8px 18px rgba(0,0,0,.35)}
-.badge.foto img{object-fit:cover}
-.tlogo{width:22px;height:22px;border-radius:6px;background:#fff;padding:2px;flex:none;display:inline-flex;overflow:hidden}
+.badge.foto img{object-fit:cover;inset:0;width:100%;height:100%}
+.tlogo{width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,.07);transition:background .2s;padding:2px;flex:none;display:inline-flex;overflow:hidden}
+.tlogo.ok{background:#fff}
 .tlogo img{width:100%;height:100%;object-fit:contain;display:block}
 .tlogo.foto{padding:0;border-radius:50%}.tlogo.foto img{object-fit:cover}
 .tm,.rangrij .tm,.predrij .ro{display:inline-flex;align-items:center;gap:8px;min-width:0}
@@ -1271,7 +1276,7 @@ var CLUBLOGO={
 var EIGEN_FOTO={'Voordaan':true};
 function logoImg(team){
   var src=CLUBLOGO[team]; if(!src)return '';
-  return '<img src="'+h(src)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" '+
+  return '<img src="'+h(src)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onload="this.parentNode.classList.add(\'ok\')" '+
     'onerror="var p=this.parentNode;if(p.classList.contains(\'tlogo\')){p.remove();return;}p.classList.remove(\'logo\',\'foto\');this.remove()">';
 }
 /** Een clubbadge: het logo, of twee of drie letters op een eigen kleur als er (nog) geen logo is. */
@@ -1926,13 +1931,15 @@ function klokRegels(nu){
   return '<div class="klokken">'+['hk','pk'].map(function(ck){
     var c=S.comps[ck], d=speeldatum(ck,nu), dl=deadlineVoor(ck,nu);
     var rest=resterend(dl), dicht=rondeDicht(ck,nu), af=wijktAf(ck,nu);
+    var uitslag=String(c.matches[nu].actual||'').trim();
     var status = dicht
-      ? '<span class="tag">gesloten</span>'
+      ? (uitslag?'<span class="tag ok">'+h(uitslag)+'</span>'
+          :(d&&d.getTime()<Date.now()?'<span class="tag">uitslag volgt</span>':'<span class="tag">gesloten</span>'))
       : (rest ? '<span class="klok'+(new Date(dl).getTime()-Date.now()<86400000?' bijna':'')+'">nog '+aftelKort(dl)+'</span>'
               : '<span class="klok">geen datum</span>');
     return '<div class="klokrij'+(af?' afwijkend':'')+'">'+
       '<span class="kcomp">'+h(c.name)+'</span><span class="kstatus">'+status+'</span>'+
-      '<span class="kdatum">'+(d?'speelt '+h(kortDatum(d)):'–')+'</span>'+
+      '<span class="kdatum">'+(d?(d.getTime()<Date.now()?'speelde ':'speelt ')+h(kortDatum(d)):'–')+'</span>'+
       (dl&&!dicht?'<span class="ksluit">sluit '+h(kortDatum(dl))+'</span>':'')+
       (af?'<span class="kwaarschuw">speelt doordeweeks, controleer het sluitmoment</span>':'')+
       '</div>';
@@ -1980,20 +1987,27 @@ function vWvdw(){
   return rondeKiezer()+
     wvdwBlock(compKeuze)+
     '<p class="wvdwhint">Zwiep naar links of rechts voor een andere ronde. Tik op punten voor de uitleg.</p>'+
-    '<div class="sectie">Wie kiest wanneer</div><div class="card"><div class="kiezerrooster">'+
-    Array.apply(null,{length:22}).map(function(_,i){
-      var w=beurtVoor(i);
-      return '<div class="'+(w===ME?'ik ':'')+(i===nu?'nu':'')+'"><span>W'+(i+1)+'</span>'+h(w)+'</div>';
-    }).join('')+'</div>'+
-    '<p class="hint">De volgorde loopt rond. Wie aan de beurt is kiest die week zowel de Hoofdklasse- als de Promotieklassewedstrijd.'+
-    (ADMIN?' De volgorde pas je aan bij Meer.':'')+'</p></div>'+
-    '<div class="sectie">Puntentelling</div><div class="card"><div class="puntlijst">'+
-    '<div><b class="p10">'+S.pts.exact+'</b>exacte uitslag</div>'+
-    '<div><b class="p7">'+S.pts.scoreWin+'</b>één teamscore goed + juiste winnaar</div>'+
-    '<div><b class="p5">'+S.pts.win+'</b>alleen juiste winnaar of gelijkspel</div>'+
-    '<div><b class="p2">'+S.pts.score+'</b>één teamscore goed, winnaar fout</div></div>'+
-    '<p class="hint">Twee vakjes: thuis en uit. Na één cijfer springt hij vanzelf door, met Enter ga je verder. '+
-    'Wil je 10 of hoger, druk dan backspace om terug te gaan.</p></div>';
+    blok('kiezers','Wie kiest wanneer',beurtVoor(nu)===ME?'jij kiest deze ronde':h(beurtVoor(nu))+' kiest deze ronde · jij in W'+(volgendeKeerIk(nu)+1),
+      '<div class="kiezerrooster">'+
+      Array.apply(null,{length:22}).map(function(_,i){
+        var w=beurtVoor(i);
+        return '<div class="'+(w===ME?'ik ':'')+(i===nu?'nu':'')+'"><span>W'+(i+1)+'</span>'+h(w)+'</div>';
+      }).join('')+'</div>'+
+      '<p class="hint">De volgorde loopt rond. Wie aan de beurt is kiest die week zowel de Hoofdklasse- als de Promotieklassewedstrijd.'+
+      (ADMIN?' De volgorde pas je aan bij Meer.':'')+'</p>')+
+    blok('puntentelling','Puntentelling',S.pts.exact+' voor exact, '+S.pts.scoreWin+', '+S.pts.win+' of '+S.pts.score+' voor bijna',
+      '<div class="puntlijst">'+
+      '<div><b class="p10">'+S.pts.exact+'</b>exacte uitslag</div>'+
+      '<div><b class="p7">'+S.pts.scoreWin+'</b>één teamscore goed + juiste winnaar</div>'+
+      '<div><b class="p5">'+S.pts.win+'</b>alleen juiste winnaar of gelijkspel</div>'+
+      '<div><b class="p2">'+S.pts.score+'</b>één teamscore goed, winnaar fout</div></div>'+
+      '<p class="hint">Twee vakjes: thuis en uit. Na één cijfer springt hij vanzelf door, met Enter ga je verder. '+
+      'Wil je 10 of hoger, druk dan backspace om terug te gaan.</p>');
+}
+/** Eerstvolgende ronde vanaf nu waarin ik kies. */
+function volgendeKeerIk(nu){
+  for(var i=nu;i<22;i++) if(beurtVoor(i)===ME) return i;
+  return nu;
 }
 
 /* ================= eindstand-voorspellingen ================= */
@@ -2073,7 +2087,12 @@ function predBlock(ck){
   var mijnKaart=(S.players.indexOf(ME)>=0)?predKaart(ck,ME):'';
   var andereKaarten=anderen.map(function(p){
     var s=scorePlayer(c,p,S.pts);
-    return '<details class="ander" data-blok="'+ck+'-'+h(p)+'"'+(openBlok[ck+'-'+p]?' open':'')+'><summary>'+avatar(p,'s')+h(p)+bekerHtml(p)+' <small>'+(s.positie+s.bonus)+' punten</small></summary>'+
+    // Zolang de eindstand er niet is, zegt "0 punten" niets. Dan de live stand.
+    var eind=(c.result.standing||[]).some(function(t){return String(t||'').trim();});
+    var L=(c.live&&c.live.standing)||[], pr=c.preds[p]||blankPred(), nu=0;
+    for(var i=0;i<12;i++) if(L[i]&&eq(pr.standing[i],L[i])) nu++;
+    var sub=eind||!L.some(Boolean)?(s.positie+s.bonus)+' punten':nu+' van 12 nu goed';
+    return '<details class="ander" data-blok="'+ck+'-'+h(p)+'"'+(openBlok[ck+'-'+p]?' open':'')+'><summary>'+avatar(p,'s')+h(p)+bekerHtml(p)+' <small>'+sub+'</small></summary>'+
       predKaart(ck,p)+'</details>';
   }).join('');
   var start=speeldatum(ck,0);
@@ -2123,20 +2142,7 @@ function liveBlock(ck){
       return '<div class="liverij"><span class="nr">'+(i+1)+'</span><select data-a="lstanding" data-c="'+ck+'" data-i="'+i+'" class="'+(dup[i]?'dup':'')+'" aria-label="Plek '+(i+1)+'">'+teamOpts(c.teams,t)+'</select></div>';
     }).join('')+'</div></details>':'';
 
-  var perSpeler=S.players.map(function(p){
-    var pr=c.preds[p]||blankPred(), n=0;
-    for(var i=0;i<12;i++) if(eq(pr.standing[i],L.standing[i])) n++;
-    return {p:p,n:n};
-  }).sort(function(a,b){return b.n-a.n;});
-
-  var telling='<div class="sectie">Voorlopige ranglijstpunten</div><div class="card"><div class="lead">'+
-    perSpeler.map(function(x,i){
-      return '<div class="lrow '+(x.p===ME?'mine':'')+'">'+
-        '<div class="pos">'+(i+1)+'</div><div class="lwie">'+avatar(x.p)+'<div style="min-width:0"><div class="pname">'+h(x.p)+'</div>'+
-        '<div class="psub">'+x.n+' van 12 goed</div></div></div>'+
-        '<div class="ptot">'+(x.n*S.pts.positie)+'</div></div>';
-    }).join('')+'</div>'+
-    '<p class="hint">Dit telt nog niet mee in de stand. Pas als de competitie is afgelopen en de eindstand vaststaat, worden deze punten echt.</p></div>';
+  var telling='<p class="hint" style="margin:-4px 4px 12px">De ranglijstpunten per speler staan bij <b>Stand › Ranglijst</b>.</p>';
 
   var beheer='';
   if(ADMIN){
@@ -2351,14 +2357,8 @@ function vInfo(){
     Object.keys(pl).map(function(k){return '<div class="kv"><label>'+pl[k]+'</label><b>'+S.pts[k]+'</b></div>';}).join('')+
     '<p class="hint">Je kunt een voorspelling voor de wedstrijd van de week aanpassen tot de beheerder de uitslag invoert. Daarna gaat hij op slot.</p>'+
     '<p class="hint">Versie '+(S.versie||'?')+'</p></div>';
-  if(!ADMIN)return regels+
-    '<div class="card"><h2>Beurtvolgorde</h2><div class="beurtvolgorde">'+
-    (S.beurten||[]).map(function(p,i){
-      return '<div class="beurtrij" style="grid-template-columns:26px 1fr"><span class="mini">'+(i+1)+'</span><b'+
-        (p===ME?' style="color:var(--acc)"':'')+'>'+h(p)+'</b></div>';
-    }).join('')+'</div>'+
-    '<p class="hint">Zo rouleert het kiezen van de wedstrijd van de week. Alleen '+h(S.admin)+' kan de volgorde aanpassen.</p></div>'+
-    '<div class="card"><h2>Beheer</h2><p class="hint">'+h(S.admin)+' is beheerder en voert de uitslagen in.</p></div>';
+  // Spelers: de beurtvolgorde staat al bij Wedstrijd › Wie kiest wanneer.
+  if(!ADMIN)return regels+'<p class="hint" style="margin:0 4px">'+h(S.admin)+' is beheerder en voert de uitslagen in.</p>';
   var nu=huidigeRonde();
   function lokaleTijd(iso){
     if(!iso)return '';
