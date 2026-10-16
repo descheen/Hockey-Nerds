@@ -128,6 +128,13 @@ Lukt het niet, dan ziet de beheerder dat in de app: een taak op het homescherm e
 
 ---
 
+### Profielfoto's
+
+Elke speler kan bij **Meer** een eigen profielfoto kiezen. De app snijdt hem vierkant bij en verkleint hem tot een
+klein JPEG-plaatje (192 × 192) voordat hij wordt verstuurd. De foto's staan in het verborgen tabblad `__FOTOS` van de sheet,
+los van de app-data, zodat de back-ups klein blijven. Alleen ingelogde spelers zien ze, en iedereen kan alleen
+zijn eigen foto zetten of weghalen. Het inlogscherm toont nog de letters, omdat dat scherm voor iedereen met de link open staat.
+
 ## Testchecklist
 
 Iedereen moet in de geïnstalleerde app **opnieuw inloggen**. Een app op het beginscherm heeft zijn

@@ -6,7 +6,7 @@
 
 var DATA_SHEET = '__APPDATA';
 var N_MATCH = 22;
-var VERSIE = 26;
+var VERSIE = 27;
 
 // Verhoog dit als de punten veranderen, dan nemen bestaande poules ze over.
 var PTS_VERSIE = 2;
@@ -485,6 +485,7 @@ function publicState_(s, who) {
   Object.keys(s.pins || {}).forEach(function (k) { pinFlags[k] = true; });
   out.pins = pinFlags;
   out.versie = VERSIE;
+  out.fotos = leesFotos_(s.players);
   // E-mailadressen zijn niemands zaak behalve die van de beheerder.
   if (who !== s.admin) { out.emails = {}; out.appUrl = ''; out.herinnerd = {}; out.autoFout = ''; }
 
@@ -569,6 +570,43 @@ function getPlayers() {
  * patches: [{path:[...], value:...}]
  * Alleen toegestane paden worden toegepast, de rest wordt genegeerd en teruggemeld.
  */
+/* ============ profielfoto's ============ */
+/*
+ * Elke speler kan een eigen foto zetten. Die staan in een eigen verborgen tabblad,
+ * niet in de app-data, zodat de back-ups klein blijven. De app verkleint de foto
+ * eerst tot een klein vierkant JPEG-plaatje. Alleen ingelogde spelers zien ze.
+ */
+var FOTO_SHEET = '__FOTOS';
+var FOTO_MAX = 45000; // tekens, ruim onder de grens van een cel (50.000)
+
+function fotoFout_(v) {
+  if (v === '') return null; // weghalen mag altijd
+  if (typeof v !== 'string' || v.length > FOTO_MAX) return 'Die foto is te groot.';
+  if (!/^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(v)) return 'Dat is geen foto.';
+  return null;
+}
+function leesFotos_(spelers) {
+  var sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(FOTO_SHEET);
+  if (!sh) return {};
+  var n = sh.getLastRow();
+  if (!n) return {};
+  var uit = {};
+  sh.getRange(1, 1, n, 2).getValues().forEach(function (r) {
+    var wie = String(r[0] || ''), foto = String(r[1] || '');
+    if (spelers.indexOf(wie) >= 0 && !fotoFout_(foto) && foto) uit[wie] = foto;
+  });
+  return uit;
+}
+function schrijfFoto_(wie, foto) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(FOTO_SHEET);
+  if (!sh) { sh = ss.insertSheet(FOTO_SHEET); sh.hideSheet(); }
+  var n = sh.getLastRow(), rij = -1;
+  if (n) sh.getRange(1, 1, n, 1).getValues().forEach(function (r, i) { if (String(r[0]) === wie) rij = i + 1; });
+  if (rij < 0) { if (!foto) return; rij = n + 1; }
+  sh.getRange(rij, 1, 1, 3).setValues([[wie, foto, new Date().toISOString()]]);
+}
+
 function applyPatches(who, pin, patchesJson) {
   var lock = LockService.getScriptLock();
   lock.waitLock(25000);
@@ -581,6 +619,12 @@ function applyPatches(who, pin, patchesJson) {
     var refused = [];
     zorgDeadlines_(s);
     patches.forEach(function (p) {
+      // Je eigen profielfoto: apart opgeslagen, nooit die van een ander.
+      if (p && typeof p === 'object' && Object.prototype.hasOwnProperty.call(p, 'foto')) {
+        var fout = fotoFout_(p.foto);
+        if (fout) refused.push(fout); else schrijfFoto_(who, p.foto);
+        return;
+      }
       var vorm = controleerPatch_(p);
       if (vorm) { refused.push(vorm); return; }
       var why = denyReason_(s, who, admin, p.path);

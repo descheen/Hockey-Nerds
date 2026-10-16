@@ -527,6 +527,10 @@ details.ander .predkaart{margin:0;padding-top:0;background:none}
 .avatar{width:52px;height:52px;border-radius:16px;background:var(--acc-soft);color:var(--acc-txt);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:850;flex:none}
 .account .wie{flex:1;min-width:0}
 .account .wie b{display:block;font-size:var(--t-l)}
+.av.foto{background-size:cover;background-position:center;color:transparent}
+.fotoknoppen{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:8px}
+.fotoknoppen .btn{min-height:var(--tik)}
+.fotoknoppen label.btn{cursor:pointer}
 .knoppen2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s2);margin-top:var(--s3)}
 .beurtvolgorde{display:grid;gap:6px;margin:var(--s2) 0}
 .beurtrij{display:grid;grid-template-columns:26px 1fr auto auto;gap:var(--s2);align-items:center;min-height:52px;background:var(--surface-2);border-radius:var(--r-m);padding:4px var(--s2) 4px var(--s3)}
@@ -1276,6 +1280,7 @@ function aanHetTypen(){
 
 function render(){
   var focus=bewaarFocus();
+  fotoStijl();
   var actief=(tab==='result')?'info':tab;
   var open=watMoetIkNog().length;
   document.getElementById('nav').innerHTML=TABS.map(function(t){
@@ -1335,7 +1340,49 @@ function spelerKleur(p){
   return KLEUREN[i%KLEUREN.length];
 }
 function avatar(p,maat){
-  return '<span class="av'+(maat?' av-'+maat:'')+'" style="--k:'+spelerKleur(p)+'" aria-hidden="true">'+h(String(p||'?').charAt(0).toUpperCase())+'</span>';
+  var f=fotoKlasse(p);
+  return '<span class="av'+(maat?' av-'+maat:'')+(f?' foto '+f:'')+'" style="--k:'+spelerKleur(p)+'" aria-hidden="true">'+h(String(p||'?').charAt(0).toUpperCase())+'</span>';
+}
+/* Profielfoto's: één stijlblok met per speler een klasse, zodat de foto niet in elke avatar herhaald wordt. */
+var fotoSleutel='';
+function fotoKlasse(p){
+  if(!S||!S.fotos||!S.fotos[p])return '';
+  return 'fp'+S.players.indexOf(p);
+}
+function fotoStijl(){
+  var f=(S&&S.fotos)||{}, sleutel=Object.keys(f).map(function(p){return p+':'+f[p].length+f[p].slice(-12);}).join('|');
+  if(sleutel===fotoSleutel)return;
+  fotoSleutel=sleutel;
+  var el=document.getElementById('hn-fotos');
+  if(!el){el=document.createElement('style');el.id='hn-fotos';document.head.appendChild(el);}
+  el.textContent=Object.keys(f).map(function(p){
+    return '.av.fp'+S.players.indexOf(p)+'{background-image:url("'+f[p]+'")}';
+  }).join('\n');
+}
+/** Foto kiezen: vierkant bijsnijden, verkleinen tot 192px en als JPEG opslaan. */
+function kiesFoto(bestand){
+  if(!bestand||!/^image\//.test(bestand.type))return toast('Kies een foto.',true);
+  var url=URL.createObjectURL(bestand), img=new Image();
+  img.onload=function(){
+    URL.revokeObjectURL(url);
+    var z=Math.min(img.naturalWidth,img.naturalHeight), c=document.createElement('canvas'), m=192;
+    c.width=m;c.height=m;
+    c.getContext('2d').drawImage(img,(img.naturalWidth-z)/2,(img.naturalHeight-z)/2,z,z,0,0,m,m);
+    var kw=.85, data=c.toDataURL('image/jpeg',kw);
+    while(data.length>40000&&kw>.4){kw-=.1;data=c.toDataURL('image/jpeg',kw);}
+    zetFoto(data);
+  };
+  img.onerror=function(){URL.revokeObjectURL(url);toast('Deze foto kan ik niet openen.',true);};
+  img.src=url;
+}
+function zetFoto(data){
+  setStatus('opslaan…','busy');
+  google.script.run.withSuccessHandler(function(res){
+    if(!res||res.error)return toast((res&&res.error)||'Opslaan mislukt',true);
+    if(res.refused&&res.refused.length)return toast(res.refused[0],true);
+    S=res.state; setStatus('opgeslagen','ok'); render(); toast(data?'Foto staat erop':'Foto weggehaald');
+  }).withFailureHandler(function(){setStatus('geen verbinding','err');toast('Opslaan mislukt, probeer het zo nog eens.',true);})
+    .applyPatches(ME,PIN,JSON.stringify([{foto:data}]));
 }
 /**
  * Clublogo's. De officiële logo's komen van hockeystanden.nl (geen kopieën in deze repo).
@@ -2370,7 +2417,11 @@ function vResult(){
 /* ================= meer ================= */
 function vMeer(){
   var acc='<div class="card"><div class="account">'+avatar(ME,'xl')+''+
-    '<div class="wie"><b>'+h(ME)+bekerHtml(ME)+'</b><span class="mini">Seizoen '+h(S.season)+(ADMIN?' · beheerder':'')+'</span></div></div>'+
+    '<div class="wie"><b>'+h(ME)+bekerHtml(ME)+'</b><span class="mini">Seizoen '+h(S.season)+(ADMIN?' · beheerder':'')+'</span>'+
+    // Alleen als Code.gs al foto's kent (versie 27 of later).
+    (S.fotos?'<div class="fotoknoppen"><label class="btn mini">'+(S.fotos&&S.fotos[ME]?'Andere foto':'Profielfoto kiezen')+
+    '<input type="file" accept="image/*" id="fotoKies" hidden></label>'+
+    (S.fotos&&S.fotos[ME]?'<button class="btn mini link" data-fotoweg="1">Weghalen</button>':'')+'</div>':'')+'</div></div>'+
     '<div class="knoppen2"><button class="btn" data-ververs="1">Verversen</button>'+
     '<button class="btn danger" id="btnLogout">Uitloggen</button></div></div>';
   var seg='<div class="seg"><button data-ga="info" class="'+(tab==='info'?'on':'')+'">'+(ADMIN?'Info en beheer':'Info')+'</button>'+
@@ -2593,6 +2644,7 @@ function onInput(e){
   if(a==='rtopscorer'){patch(['comps',ck,'result','topscorer'],v);return;}
 }
 function onChange(e){
+  if(e.target.id==='fotoKies'){kiesFoto(e.target.files&&e.target.files[0]);e.target.value='';return;}
   var el=e.target.closest('[data-a]'); if(!el)return;
   var a=el.dataset.a, ck=el.dataset.c, p=el.dataset.p, i=Number(el.dataset.i), v=el.value;
   if(a==='zoekmatch'){
@@ -2622,6 +2674,7 @@ function onClick(e){
   if(cp){compKeuze=cp.dataset.comp;if(!cp.dataset.ga){render();return;}}
   if(e.target.closest('#btnLogout')){logout();return;}
   if(e.target.closest('[data-ververs]')){refresh(false);return;}
+  if(e.target.closest('[data-fotoweg]')){zetFoto('');return;}
   // sprong vanuit de actiebalk
   var ga=e.target.closest('[data-ga]');
   if(ga){tab=ga.dataset.ga;render();window.scrollTo(0,0);return;}

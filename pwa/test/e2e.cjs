@@ -309,6 +309,15 @@ async function toestel(browser, naam, device, metOffline) {
   await page.click('#go');
   await page.waitForSelector('#nav button');
   check(await page.evaluate(() => ME === 'Tijn' && ADMIN === false), 'inloggen als gewone speler (Tijn)');
+  // profielfoto: zetten, zichtbaar in de avatars, weghalen
+  await page.click('#nav button[data-tab="info"]');
+  await page.setInputFiles('#fotoKies', path.join(__dirname, '..', '..', 'docs', 'icons', 'clubs', 'voordaan.jpg'));
+  await page.waitForFunction(() => S.fotos && S.fotos.Tijn, null, { timeout: 15000 });
+  const foto = await page.evaluate(() => ({ klein: S.fotos.Tijn.length < 45000, av: document.querySelectorAll('.av.foto').length }));
+  check(foto.klein && foto.av >= 1, 'profielfoto: verkleind opgeslagen en zichtbaar in de avatar');
+  await page.click('[data-fotoweg]');
+  await page.waitForFunction(() => !S.fotos.Tijn, null, { timeout: 15000 });
+  check(true, 'profielfoto weghalen werkt');
   for (const t of ['stand', 'wvdw', 'pred', 'live', 'info', 'result']) {
     const te = await page.evaluate((t) => {
       tab = t; render();
