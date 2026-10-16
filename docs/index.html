@@ -827,6 +827,62 @@ body.profielopen{overflow:hidden}
 .snijzoom{display:flex;align-items:center;gap:10px;margin:14px 4px 6px;color:var(--dim);font-weight:700}
 .snijzoom input{flex:1;min-height:44px;accent-color:var(--acc);background:none;border:0}
 
+/* terugblik op de speeldag */
+.recap{position:fixed;inset:0;z-index:70;color:#fff;overflow:hidden;
+  background:radial-gradient(120% 55% at 100% 0%,rgba(255,122,26,.35),transparent 60%),radial-gradient(90% 50% at 0% 100%,rgba(99,102,241,.35),transparent 60%),#0b0f19;
+  padding:calc(var(--top) + 18px) 20px calc(var(--onder) + 20px)}
+.rs-balk{display:flex;gap:5px}.rs-balk i{flex:1;height:3px;border-radius:3px;background:rgba(255,255,255,.22)}
+.rs-balk i.vol,.rs-balk i.nu{background:#fff}
+.rs-sluit{position:absolute;top:calc(var(--top) + 28px);right:10px;color:rgba(255,255,255,.8);z-index:2}
+.rs-slide{display:none;flex-direction:column;height:calc(100% - 40px);padding-top:26px}
+.rs-slide.aan{display:flex;animation:rsin .35s var(--zacht)}
+@keyframes rsin{from{opacity:0;transform:translateY(14px)}}
+.rs-kop small{font-size:12px;font-weight:650;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+.rs-kop h2{margin:6px 0 18px;font-family:var(--display);font-weight:800;font-size:44px;line-height:.95;text-transform:uppercase;letter-spacing:.01em}
+.rs-duels{display:grid;gap:12px}
+.rs-duel{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:12px 14px}
+.rs-comp{font-size:11px;font-weight:650;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55);text-align:center}
+.rs-teams{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;margin-top:8px;text-align:center}
+.rs-teams>div:not(.rs-uitslag){display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.rs-teams b{font-size:13px;font-weight:650;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rs-teams .badge{width:46px;height:46px;font-size:16px;border-radius:14px}
+.rs-uitslag{font-family:var(--display);font-weight:800;font-size:46px;letter-spacing:.02em;white-space:nowrap;line-height:1}.rs-uitslag i{font-style:normal;opacity:.5;margin:0 6px}
+.rs-jij{margin-top:8px;text-align:center;font-size:13px;color:rgba(255,255,255,.75);display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap}
+.rs-jij .exact{height:22px;font-size:12px}
+.rs-groot{margin-top:auto;text-align:center;padding-bottom:10px}
+.rs-groot small{display:block;font-size:13px;font-weight:650;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+.rs-groot b{display:block;font-family:var(--display);font-weight:800;font-size:96px;line-height:1;color:var(--acc)}
+.rs-groot span{font-size:15px;color:rgba(255,255,255,.7)}
+.rs-winnaars{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;margin-top:10px}
+.rs-winnaars>div{display:flex;flex-direction:column;align-items:center;gap:10px;font-size:18px}
+.rs-winnaars.veel .av-xxl{width:88px;height:88px;font-size:40px}
+.rs-tekst{font-size:17px;line-height:1.5;color:rgba(255,255,255,.85);text-align:center;margin:18px 0 0}
+.rs-stand{display:grid;gap:8px}
+.rs-rij{display:grid;grid-template-columns:26px 40px 1fr auto 44px;align-items:center;gap:10px;min-height:58px;padding:6px 14px;border-radius:16px;background:rgba(255,255,255,.07)}
+.rs-rij.ik{background:rgba(255,122,26,.18);box-shadow:inset 3px 0 0 var(--acc)}
+.rs-nr{font-family:var(--display);font-weight:800;font-size:22px;color:rgba(255,255,255,.55)}
+.rs-nm{font-weight:650;font-size:17px;display:flex;align-items:center;gap:6px;min-width:0}
+.rs-d{font-size:13px;font-weight:700;color:var(--ok)}
+.rs-rij b{text-align:right;font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.rs-volg{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:14px 16px;margin-bottom:10px}
+.rs-volg small{display:block;font-size:12px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.6)}
+.rs-volg b{display:block;font-size:20px;font-weight:700;margin-top:4px}
+.rs-knoppen{margin-top:auto;display:grid;gap:10px}
+.rs-knoppen .btn{min-height:54px;font-size:17px}
+.rs-hint{position:absolute;left:0;right:0;bottom:calc(var(--onder) + 8px);text-align:center;font-size:12px;color:rgba(255,255,255,.45);pointer-events:none}
+.rk-terug{margin-top:4px;padding:0;min-height:var(--tik)}
+.rs-slide{overflow-y:auto}
+@media (max-height:720px){
+  .rs-slide{padding-top:16px}
+  .rs-kop h2{font-size:34px;margin-bottom:12px}
+  .rs-duels{gap:8px}.rs-duel{padding:8px 12px}
+  .rs-teams{margin-top:4px}.rs-teams .badge{width:36px;height:36px;font-size:13px;border-radius:11px}
+  .rs-uitslag{font-size:36px}.rs-jij{margin-top:4px}
+  .rs-groot b{font-size:64px}
+  .rs-rij{min-height:50px}
+  .rs-winnaars .av-xxl{width:92px;height:92px;font-size:42px}
+}
+
 @media(prefers-reduced-motion:reduce){
   *,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
@@ -1174,6 +1230,8 @@ function start(r){
   S=r.state; ME=r.who; ADMIN=r.admin;
   try{PIN=JSON.parse(localStorage.getItem('hn-login')).pin;}catch(e){}
   shell(); render();
+  // Nieuwe speeldag sinds je laatste bezoek? Dan eerst de terugblik.
+  if(recapNieuw())toonRecap();
   // Na het inloggen bovenaan beginnen, niet waar het pincodeveld stond.
   if(document.activeElement)document.activeElement.blur(); window.scrollTo(0,0);
   clearInterval(pollTimer); pollTimer=setInterval(function(){refresh(true);},25000);
@@ -1568,7 +1626,9 @@ function laatsteRonde(sc){
   var plekVoor={};
   voor.forEach(function(p,i){plekVoor[p]=(i>0&&sc[p].total-punten[p]===sc[voor[i-1]].total-punten[voor[i-1]])?plekVoor[voor[i-1]]:i+1;});
   var naam=laatst?['zo','ma','di','wo','do','vr','za'][laatst.getDay()]+' '+laatst.getDate()+'/'+(laatst.getMonth()+1):'';
-  return {naam:naam,punten:punten,exact:exact,winnaars:winnaars,best:best,plekVoor:plekVoor};
+  // Sleutel van deze speeldag: verandert zodra er een uitslag bijkomt of wijzigt.
+  var sleutel=mee.map(function(g){return g.ck+g.i+'='+S.comps[g.ck].matches[g.i].actual;}).join('|');
+  return {naam:naam,punten:punten,exact:exact,winnaars:winnaars,best:best,plekVoor:plekVoor,mee:mee,sleutel:sleutel};
 }
 /** "Rein, PB en David" */
 function opsomming(l){return l.length<2?l.join(''):l.slice(0,-1).join(', ')+' en '+l[l.length-1];}
@@ -1633,6 +1693,7 @@ function vStand(){
        :'<div class="rk-win"><span>Niemand scoorde punten deze speeldag.</span></div>')+
       (exacten.length?'<div class="rk-exact">Exact goed: <b>'+opsomming(exacten.map(function(p){return p===ME?'jij':h(p);}))+'</b></div>':'')+
       (mijn!=null&&w.indexOf(ME)<0?'<div class="rk-mij">Jij: '+(mijn>0?'+'+mijn+' punten':'geen punten')+'</div>':'')+
+      '<button class="btn link rk-terug" data-recap="1">Terugkijken ›</button>'+
       '</div>';
   }
   return beurtBanner()+
@@ -2499,6 +2560,103 @@ function vResult(){
     resultBlock(compKeuze);
 }
 
+/* ================= terugblik op de speeldag ================= */
+/* Na een nieuwe speeldag het openingsscherm: uitslagen, winnaar, nieuwe stand, volgende ronde. */
+function recapSleutel(){return 'hn-recap-'+ME;}
+function recapNieuw(){
+  if(!S||S.players.indexOf(ME)<0)return false;
+  var lr=laatsteRonde(scoreAll()); if(!lr||!lr.mee.length)return false;
+  var gezien=''; try{gezien=localStorage.getItem(recapSleutel())||'';}catch(e){}
+  return gezien!==lr.sleutel;
+}
+var recapStap=0;
+function toonRecap(){
+  var sc=scoreAll(), lr=laatsteRonde(sc); if(!lr)return;
+  try{localStorage.setItem(recapSleutel(),lr.sleutel);}catch(e){}
+  var order=S.players.slice().sort(function(a,b){return sc[b].total-sc[a].total;}), plek={};
+  order.forEach(function(p,i){plek[p]=(i>0&&sc[p].total===sc[order[i-1]].total)?plek[order[i-1]]:i+1;});
+  var ik=S.players.indexOf(ME)>=0, slides=[];
+  // 1. de uitslagen
+  var mijnTot=ik?lr.punten[ME]:0;
+  slides.push('<div class="rs-kop"><small>Speeldag'+(lr.naam?' · '+h(lr.naam):'')+'</small><h2>De uitslagen</h2></div>'+
+    '<div class="rs-duels">'+lr.mee.map(function(g){
+      var c=S.comps[g.ck], m=c.matches[g.i], u=parseScore(m.actual)||['?','?'];
+      var mv=ik?(c.preds[ME]||blankPred()).wvdw[g.i]:'', pt=ik?matchPoints(mv,m.actual,S.pts):0;
+      return '<div class="rs-duel"><div class="rs-comp">'+h(c.name)+'</div>'+
+        '<div class="rs-teams"><div>'+(m.home?clubBadge(m.home):'')+'<b>'+h(m.home||'thuis')+'</b></div>'+
+        '<div class="rs-uitslag">'+u[0]+'<i>–</i>'+u[1]+'</div>'+
+        '<div>'+(m.away?clubBadge(m.away):'')+'<b>'+h(m.away||'uit')+'</b></div></div>'+
+        (ik?'<div class="rs-jij">jij: '+(mv?h(mv):'niets ingevuld')+(pt?' <span class="rchip plus">+'+pt+'</span>':'')+(pt===S.pts.exact?' <span class="exact">Exact</span>':'')+'</div>':'')+
+        '</div>';
+    }).join('')+'</div>'+
+    (ik?'<div class="rs-groot"><small>Jij scoorde</small><b>'+(mijnTot>0?'+'+mijnTot:'0')+'</b><span>punten</span></div>':''));
+  // 2. de winnaar
+  var w=lr.winnaars, ex=S.players.filter(function(p){return lr.exact[p];});
+  slides.push('<div class="rs-kop"><small>Speeldag'+(lr.naam?' · '+h(lr.naam):'')+'</small><h2>'+(w.length>1?'De winnaars':(w.length?'De winnaar':'Geen winnaar'))+'</h2></div>'+
+    (w.length?'<div class="rs-winnaars'+(w.length>2?' veel':'')+'">'+w.map(function(p){
+      return '<div>'+avatar(p,'xxl')+'<b>'+(p===ME?'Jij':h(p))+'</b></div>';
+    }).join('')+'</div><div class="rs-groot"><b>+'+lr.best+'</b><span>punten</span></div>'
+      :'<p class="rs-tekst">Niemand scoorde punten deze speeldag.</p>')+
+    (ex.length?'<p class="rs-tekst">Exact goed: <b>'+opsomming(ex.map(function(p){return p===ME?'jij':h(p);}))+'</b></p>':''));
+  // 3. de stand
+  slides.push('<div class="rs-kop"><small>Na deze speeldag</small><h2>De stand</h2></div>'+
+    '<div class="rs-stand">'+order.map(function(p){
+      var d=lr.punten[p]||0;
+      return '<div class="rs-rij'+(p===ME?' ik':'')+'"><span class="rs-nr">'+plek[p]+'</span>'+avatar(p)+
+        '<span class="rs-nm">'+(p===ME?'Jij':h(p))+beweging(lr,p,plek[p])+'</span>'+
+        '<span class="rs-d">'+(d?'+'+d:'')+'</span><b>'+sc[p].total+'</b></div>';
+    }).join('')+'</div>');
+  // 4. wat nu
+  var nu=huidigeRonde(), kiezer=beurtVoor(nu);
+  var komend=['hk','pk'].map(function(ck){
+    if(rondeDicht(ck,nu))return '';
+    var m=S.comps[ck].matches[nu], dl=deadlineVoor(ck,nu);
+    if(!m.home&&!m.away)return '<div class="rs-volg"><small>'+h(S.comps[ck].name)+'</small><b>nog te kiezen door '+(kiezer===ME?'jou':h(kiezer))+'</b></div>';
+    return '<div class="rs-volg"><small>'+h(S.comps[ck].name)+(dl&&aftelKort(dl)?' · sluit over '+aftelKort(dl):'')+'</small><b>'+h(matchLabel(m))+'</b></div>';
+  }).join('');
+  slides.push('<div class="rs-kop"><small>Speelronde '+(nu+1)+'</small><h2>Op naar de volgende</h2></div>'+
+    (komend||'<p class="rs-tekst">Deze ronde is gesloten. De uitslagen volgen vanzelf.</p>')+
+    '<div class="rs-knoppen">'+(komend?'<button class="btn pri" data-rs="wvdw">Voorspel nu</button>':'')+
+    '<button class="btn" data-rs="klaar">Naar de stand</button></div>');
+
+  var el=document.getElementById('recap');
+  if(!el){el=document.createElement('div');el.id='recap';el.className='recap';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-label','Terugblik op de speeldag');document.body.appendChild(el);}
+  el.innerHTML='<div class="rs-balk">'+slides.map(function(){return '<i></i>';}).join('')+'</div>'+
+    '<button class="ikoon rs-sluit" data-rs="klaar" aria-label="Overslaan"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>'+
+    slides.map(function(x,i){return '<section class="rs-slide" data-i="'+i+'">'+x+'</section>';}).join('')+
+    '<div class="rs-hint">Tik rechts voor verder, links voor terug</div>';
+  document.body.classList.add('profielopen');
+  recapStap=0; recapNaar(0);
+  el.onclick=function(e){
+    var k=e.target.closest('[data-rs]');
+    if(k){
+      if(k.dataset.rs==='wvdw'){sluitRecap();tab='wvdw';render();window.scrollTo(0,0);return;}
+      return sluitRecap();
+    }
+    if(e.target.closest('button,a,input'))return;
+    var links=e.clientX<window.innerWidth*0.33;
+    if(links)recapNaar(recapStap-1);
+    else if(recapStap<slides.length-1)recapNaar(recapStap+1);
+  };
+}
+function recapNaar(i){
+  var el=document.getElementById('recap'); if(!el)return;
+  var n=el.querySelectorAll('.rs-slide').length; i=Math.max(0,Math.min(n-1,i)); recapStap=i;
+  [].forEach.call(el.querySelectorAll('.rs-slide'),function(sl,j){sl.classList.toggle('aan',j===i);});
+  [].forEach.call(el.querySelectorAll('.rs-balk i'),function(b,j){b.className=j<i?'vol':(j===i?'nu':'');});
+  el.querySelector('.rs-hint').style.visibility=i===n-1?'hidden':'';
+}
+function sluitRecap(){
+  var el=document.getElementById('recap'); if(el)el.remove();
+  if(!profielVan)document.body.classList.remove('profielopen');
+}
+document.addEventListener('keydown',function(e){
+  if(!document.getElementById('recap'))return;
+  if(e.key==='Escape')sluitRecap();
+  if(e.key==='ArrowRight')recapNaar(recapStap+1);
+  if(e.key==='ArrowLeft')recapNaar(recapStap-1);
+});
+
 /* ================= profiel ================= */
 var profielVan=null;
 function openProfiel(p){
@@ -2834,6 +2992,7 @@ function onClick(e){
   if(e.target.closest('#btnLogout')){logout();return;}
   if(e.target.closest('[data-ververs]')){refresh(false);return;}
   if(e.target.closest('[data-fotoweg]')){zetFoto('');return;}
+  if(e.target.closest('[data-recap]')){toonRecap();return;}
   // sprong vanuit de actiebalk
   var ga=e.target.closest('[data-ga]');
   if(ga){tab=ga.dataset.ga;render();window.scrollTo(0,0);return;}

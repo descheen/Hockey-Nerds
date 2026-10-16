@@ -42,6 +42,12 @@ async function toestel(browser, naam, device, metOffline) {
   await page.click('#go');
   await page.waitForSelector('#nav button');
   check(true, 'inloggen werkt, app-shell staat');
+  // terugblik op de speeldag: na inloggen het openingsscherm, één keer per speeldag
+  await page.waitForSelector('#recap');
+  const rc = await page.evaluate(() => { const sl = document.querySelector('#recap .rs-slide.aan'); return { slides: document.querySelectorAll('#recap .rs-slide').length, uitslagen: document.querySelectorAll('#recap .rs-duel').length, past: sl.scrollHeight <= sl.clientHeight + 2 }; });
+  check(rc.slides === 4 && rc.uitslagen >= 1 && rc.past, `terugblik: 4 schermen, ${rc.uitslagen} uitslag(en) van de speeldag, past op het scherm`);
+  await page.click('#recap .rs-sluit');
+  check(!(await page.$('#recap')), 'terugblik overslaan met ×');
   check(await page.evaluate(() => ME === 'Rein' && ADMIN === true), 'ME/ADMIN gezet uit login-antwoord');
   await page.waitForTimeout(200);
   check(await page.evaluate(() => window.scrollY) === 0, 'na inloggen begint de pagina bovenaan');
@@ -253,6 +259,7 @@ async function toestel(browser, naam, device, metOffline) {
   // 6. herladen: automatisch inloggen uit localStorage, SW actief
   await page.reload();
   await page.waitForSelector('#nav button');
+  await page.evaluate(() => { if (document.getElementById('recap')) sluitRecap(); });
   check(true, 'herladen logt automatisch in');
   const sw = await page.evaluate(async () => { const r = await navigator.serviceWorker.ready; return !!r.active && !!navigator.serviceWorker.controller; });
   check(sw, 'service worker actief en bestuurt de pagina');
@@ -293,6 +300,7 @@ async function toestel(browser, naam, device, metOffline) {
   await page.waitForFunction(() => document.getElementById('status').textContent === 'opgeslagen', null, { timeout: 8000 });
   await Promise.all([page.waitForNavigation(), page.click('#hn-update button')]);
   await page.waitForSelector('#nav button');
+  await page.evaluate(() => { if (document.getElementById('recap')) sluitRecap(); });
   check(!(await page.$('#hn-update')), 'na verversen: nieuwe versie geladen, balk weg');
 
   // 10. uitloggen wist de offline-kopie
@@ -308,6 +316,7 @@ async function toestel(browser, naam, device, metOffline) {
   await page.fill('#pin', '1234');
   await page.click('#go');
   await page.waitForSelector('#nav button');
+  await page.evaluate(() => { if (document.getElementById('recap')) sluitRecap(); });
   check(await page.evaluate(() => ME === 'Tijn' && ADMIN === false), 'inloggen als gewone speler (Tijn)');
   // profielfoto: zetten, zichtbaar in de avatars, weghalen
   await page.click('#nav button[data-tab="info"]');

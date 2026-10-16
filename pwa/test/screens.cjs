@@ -26,6 +26,7 @@ const TOESTELLEN = [['iphone13', devices['iPhone 13']], ['iphonese', devices['iP
     await page.fill('#pin', '1234');
     await page.click('#go');
     await page.waitForSelector('#nav button');
+    await page.evaluate(() => { if (document.getElementById('recap')) sluitRecap(); });
     let n = 1;
     for (const [tab, label] of SCHERMEN) {
       await page.evaluate((t) => { tab = t; render(); window.scrollTo(0, 0); }, tab);
