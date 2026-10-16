@@ -134,6 +134,13 @@ Elke speler kan bij **Meer** een eigen profielfoto kiezen. De app snijdt hem vie
 klein JPEG-plaatje (192 × 192) voordat hij wordt verstuurd. De foto's staan in het verborgen tabblad `__FOTOS` van de sheet,
 los van de app-data, zodat de back-ups klein blijven. Alleen ingelogde spelers zien ze, en iedereen kan alleen
 zijn eigen foto zetten of weghalen. Het inlogscherm toont nog de letters, omdat dat scherm voor iedereen met de link open staat.
+Na het kiezen schuif en zoom je de foto zelf goed in het rondje.
+
+### Profielen
+
+Tik op een speler (foto, naam of rij in de stand) voor zijn profiel: plek en punten, punten per competitie, toto, raak,
+exact, gewonnen rondes, bekers, kampioen-tips en zijn favoriete speler in de Hoofdklasse en Promotieklasse.
+Je favorieten vul je op je eigen profiel in (tik op je eigen foto, of op je foto bij Meer).
 
 ## Testchecklist
 

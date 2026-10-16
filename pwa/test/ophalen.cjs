@@ -138,6 +138,12 @@ check(G(`_a.comps.hk.live.standing[3]`) === 'Klein Zwitserland', 'ranglijst Hoof
 check(G(`_a.autoFout`) === '', 'geen foutmelding als alles lukt');
 check(G(`_a.comps.pk.live.cijfers.length`) === 12 && G(`_a.comps.pk.live.cijfers[0].tegen`) === 5, 'doelpunten bewaard voor de bonusvragen');
 
+// Een ochtend zonder wedstrijden: niets veranderd, maar wel gecontroleerd.
+const oudBijgewerkt = G(`_a.comps.pk.live.updated`);
+const weer = opTijd('2026-10-13T09:05:00+02:00', `autoBijwerken_(_a)`);
+check(weer === true && G(`_a.comps.pk.live.updated`) === oudBijgewerkt, 'ochtend zonder nieuws: stand blijft, opslaan om de controle te bewaren');
+check(String(G(`_a.comps.pk.live.gecontroleerd`)).slice(0, 10) === '2026-10-13', 'tijdstip van de laatste controle bewaard');
+
 internet = 'nieuwe-opmaak';
 G(`var _b = defaults_(); _b.autoAan = true; _b.autoFout = '';`);
 opTijd('2026-10-13T09:10:00+02:00', `autoBijwerken_(_b)`);

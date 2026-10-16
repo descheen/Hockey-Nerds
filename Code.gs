@@ -6,7 +6,7 @@
 
 var DATA_SHEET = '__APPDATA';
 var N_MATCH = 22;
-var VERSIE = 27;
+var VERSIE = 28;
 
 // Verhoog dit als de punten veranderen, dan nemen bestaande poules ze over.
 var PTS_VERSIE = 2;
@@ -242,6 +242,7 @@ function defaults_() {
     bekers: [{ seizoen: '2025-2026', winnaar: 'PB' }],
     pins: {},
     emails: {},
+    profielen: {},
     appUrl: '',
     herinnerAan: false,
     herinnerd: {},
@@ -292,6 +293,7 @@ function migrate_(d) {
   d.admin = d.admin || base.admin;
   d.pins = d.pins || {};
   d.emails = d.emails || {};
+  d.profielen = (d.profielen && typeof d.profielen === 'object') ? d.profielen : {};
   d.herinnerd = d.herinnerd || {};
   d.herinnerAan = !!d.herinnerAan;
   d.autoAan = !!d.autoAan;
@@ -607,6 +609,21 @@ function schrijfFoto_(wie, foto) {
   sh.getRange(rij, 1, 1, 3).setValues([[wie, foto, new Date().toISOString()]]);
 }
 
+/* ============ profiel ============ */
+/* Wat je zelf over jezelf invult. Elke speler alleen zijn eigen profiel. */
+var PROFIEL_VELDEN = ['favHk', 'favPk'];
+function profielFout_(v) {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return 'Onbegrijpelijke wijziging.';
+  var sleutels = Object.keys(v);
+  if (!sleutels.length) return 'Onbegrijpelijke wijziging.';
+  for (var i = 0; i < sleutels.length; i++) {
+    if (PROFIEL_VELDEN.indexOf(sleutels[i]) < 0) return 'Onbekend veld.';
+    if (typeof v[sleutels[i]] !== 'string') return 'Alleen tekst mag opgeslagen worden.';
+    if (v[sleutels[i]].trim().length > 40) return 'Dat is te lang, houd het kort.';
+  }
+  return null;
+}
+
 function applyPatches(who, pin, patchesJson) {
   var lock = LockService.getScriptLock();
   lock.waitLock(25000);
@@ -623,6 +640,17 @@ function applyPatches(who, pin, patchesJson) {
       if (p && typeof p === 'object' && Object.prototype.hasOwnProperty.call(p, 'foto')) {
         var fout = fotoFout_(p.foto);
         if (fout) refused.push(fout); else schrijfFoto_(who, p.foto);
+        return;
+      }
+      // Je eigen profiel: favoriete spelers. Alleen je eigen, korte tekst.
+      if (p && typeof p === 'object' && Object.prototype.hasOwnProperty.call(p, 'profiel')) {
+        var pf = profielFout_(p.profiel);
+        if (pf) { refused.push(pf); return; }
+        var mijn = s.profielen[who] || {};
+        PROFIEL_VELDEN.forEach(function (k) {
+          if (Object.prototype.hasOwnProperty.call(p.profiel, k)) mijn[k] = String(p.profiel[k]).trim();
+        });
+        s.profielen[who] = mijn;
         return;
       }
       var vorm = controleerPatch_(p);
@@ -761,6 +789,7 @@ function adminAction(who, pin, action, arg) {
       if (i >= 0) {
         s.players.splice(i, 1);
         delete s.pins[arg];
+        delete s.profielen[arg];
         var bi = s.beurten.indexOf(arg);
         if (bi >= 0) s.beurten.splice(bi, 1);
         ['hk', 'pk'].forEach(function (ck) { delete s.comps[ck].preds[arg]; });
@@ -796,6 +825,7 @@ function adminAction(who, pin, action, arg) {
           if (lijst.filter(Boolean).length === 12) {
             oc.live.standing = lijst;
             oc.live.updated = new Date().toISOString();
+            oc.live.gecontroleerd = oc.live.updated;
           }
         }
         // Doelpunten per team, alleen als het er twaalf zijn met bekende teams en echte getallen.
@@ -1424,7 +1454,7 @@ function autoBijwerken_(s) {
   var comps = Object.keys(nodig);
   if (!comps.length) return false;
 
-  var gedaan = [], meldingen = [], oudeFout = s.autoFout || '';
+  var gedaan = [], meldingen = [], oudeFout = s.autoFout || '', gecontroleerd = false;
   comps.forEach(function (ck) {
     var c = s.comps[ck], bron;
     try { bron = haalBronnen_(ck, c); }
@@ -1443,6 +1473,8 @@ function autoBijwerken_(s) {
     // Een onvolledige ranglijst is alleen een probleem als we hem echt nodig hadden (de ochtendronde).
     if (nu.getHours() === 9) meldingen = meldingen.concat(bron.meldingen);
     var lijst = bron.stand;
+    // Ook als er niets veranderd is: onthouden dat we gekeken hebben, zodat de app dat kan laten zien.
+    if (lijst.length === 12) { c.live.gecontroleerd = nu.toISOString(); gecontroleerd = true; }
     if (lijst.length === 12 && lijst.join('|') !== (c.live.standing || []).join('|')) {
       c.live.standing = lijst;
       c.live.updated = nu.toISOString();
@@ -1460,7 +1492,7 @@ function autoBijwerken_(s) {
   else if (nu.getHours() === 9) s.autoFout = '';
   var foutVeranderd = (s.autoFout || '') !== oudeFout;
 
-  if (!gedaan.length) return foutVeranderd;
+  if (!gedaan.length) return foutVeranderd || gecontroleerd;
   s.autoBericht = nlDatum_(nu) + ' — ' + gedaan.join('; ');
   return true;
 }

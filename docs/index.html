@@ -522,6 +522,7 @@ details.ander .predkaart{margin:0;padding-top:0;background:none}
 .posrij .nr{font-weight:800;color:var(--faint);text-align:right;font-size:var(--t-s)}
 .posrij .ro{display:flex;align-items:center;min-height:var(--tik);padding:0 12px;border-radius:var(--r-s);background:var(--surface-2);color:var(--txt)}
 
+
 /* ================= meer ================= */
 .account{display:flex;align-items:center;gap:var(--s3)}
 .avatar{width:52px;height:52px;border-radius:16px;background:var(--acc-soft);color:var(--acc-txt);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:850;flex:none}
@@ -787,6 +788,44 @@ input:focus,select:focus,textarea:focus{border-color:var(--acc);box-shadow:0 0 0
 .aanlijst li.kop{min-height:28px;border-top:0;font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
 .aanlijst li.kop span,.aanlijst li.kop b{font-weight:650}
 .strij.kop .pt{font-size:11px;font-weight:650;letter-spacing:.1em}
+
+/* profielkaart */
+.profiel{position:fixed;inset:0;z-index:60;background:rgba(3,5,10,0);display:flex;align-items:flex-end;justify-content:center;transition:background .2s}
+.profiel.open{background:rgba(3,5,10,.62)}
+.pkaart{position:relative;width:100%;max-width:520px;max-height:92vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-bottom:0;
+  border-radius:24px 24px 0 0;padding:28px 18px calc(22px + var(--onder));transform:translateY(100%);transition:transform .22s var(--zacht)}
+.profiel.open .pkaart{transform:none}
+.pkaart:before{content:'';position:absolute;inset:0 0 auto;height:140px;border-radius:24px 24px 0 0;background:linear-gradient(180deg,color-mix(in srgb,var(--k) 28%,transparent),transparent);pointer-events:none}
+.psluit{position:absolute;top:10px;right:10px;z-index:2;color:var(--dim)}
+.pkop{position:relative;text-align:center}
+.av-xxl{width:116px;height:116px;font-size:54px;box-shadow:0 0 0 4px var(--surface),0 0 0 7px var(--k),0 12px 30px rgba(0,0,0,.45)}
+.pkop h2{margin:14px 0 2px;font-size:24px;font-weight:750;letter-spacing:-.02em}
+.pplek{color:var(--dim);font-size:var(--t-s)}.pplek b{color:var(--txt)}
+.pbekers{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-top:8px}.pbekers span{font-size:12px;font-weight:650;background:var(--gold-soft);color:var(--gold);border-radius:999px;padding:4px 10px}
+.pkop .fotoknoppen{justify-content:center}
+.pstats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:18px}
+.pstats div{background:var(--surface-2);border-radius:var(--r-m);padding:10px 8px;text-align:center}
+.pstats b{display:block;font-size:20px;font-weight:750;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.pstats span{font-size:11px;color:var(--faint);font-weight:600}
+.pfav{margin-top:18px}.pfav h3{margin:0 0 6px;font-size:11.5px;font-weight:650;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.favrij{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:48px;border-top:1px solid var(--line-soft)}
+.favrij span{color:var(--dim);font-size:var(--t-s);flex:none}.favrij b{font-weight:650;text-align:right}.favrij i{font-style:normal;color:var(--faint);font-weight:500}
+.favrij input{flex:1;min-width:0;text-align:right;background:var(--bg)}
+.ptips{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.tip{display:flex;align-items:center;gap:8px;background:var(--surface-2);border-radius:var(--r-m);padding:8px 12px;font-weight:650;font-size:var(--t-s)}
+.tip small{display:block;font-size:10.5px;color:var(--faint);font-weight:650;letter-spacing:.06em;text-transform:uppercase}
+body.profielopen{overflow:hidden}
+[data-profiel]{cursor:pointer}
+
+/* foto bijsnijden */
+.snij{position:fixed;inset:0;z-index:80;background:rgba(3,5,10,.85);display:flex;align-items:center;justify-content:center;padding:16px}
+.snijkaart{width:100%;max-width:340px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-l);padding:18px;text-align:center}
+.snijkaart h3{margin:0 0 14px;font-size:17px;font-weight:650}
+.snijvak{position:relative;width:280px;height:280px;margin:0 auto;overflow:hidden;border-radius:12px;touch-action:none;cursor:grab;background:#000}
+.snijvak img{position:absolute;left:0;top:0;transform-origin:0 0;max-width:none;user-select:none;-webkit-user-select:none;pointer-events:none}
+.snijvak:after{content:'';position:absolute;inset:0;border-radius:50%;box-shadow:0 0 0 999px rgba(3,5,10,.72);pointer-events:none;outline:2px solid rgba(255,255,255,.7);outline-offset:-2px}
+.snijzoom{display:flex;align-items:center;gap:10px;margin:14px 4px 6px;color:var(--dim);font-weight:700}
+.snijzoom input{flex:1;min-height:44px;accent-color:var(--acc);background:none;border:0}
 
 @media(prefers-reduced-motion:reduce){
   *,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
@@ -1281,6 +1320,7 @@ function aanHetTypen(){
 function render(){
   var focus=bewaarFocus();
   fotoStijl();
+  if(profielVan)tekenProfiel();
   var actief=(tab==='result')?'info':tab;
   var open=watMoetIkNog().length;
   document.getElementById('nav').innerHTML=TABS.map(function(t){
@@ -1341,7 +1381,7 @@ function spelerKleur(p){
 }
 function avatar(p,maat){
   var f=fotoKlasse(p);
-  return '<span class="av'+(maat?' av-'+maat:'')+(f?' foto '+f:'')+'" style="--k:'+spelerKleur(p)+'" aria-hidden="true">'+h(String(p||'?').charAt(0).toUpperCase())+'</span>';
+  return '<span class="av'+(maat?' av-'+maat:'')+(f?' foto '+f:'')+'" data-profiel="'+h(p)+'" style="--k:'+spelerKleur(p)+'" aria-hidden="true">'+h(String(p||'?').charAt(0).toUpperCase())+'</span>';
 }
 /* Profielfoto's: één stijlblok met per speler een klasse, zodat de foto niet in elke avatar herhaald wordt. */
 var fotoSleutel='';
@@ -1359,21 +1399,61 @@ function fotoStijl(){
     return '.av.fp'+S.players.indexOf(p)+'{background-image:url("'+f[p]+'")}';
   }).join('\n');
 }
-/** Foto kiezen: vierkant bijsnijden, verkleinen tot 192px en als JPEG opslaan. */
+/** Foto kiezen: eerst zelf goed in het rondje schuiven en zoomen, dan 192px JPEG opslaan. */
 function kiesFoto(bestand){
   if(!bestand||!/^image\//.test(bestand.type))return toast('Kies een foto.',true);
   var url=URL.createObjectURL(bestand), img=new Image();
-  img.onload=function(){
-    URL.revokeObjectURL(url);
-    var z=Math.min(img.naturalWidth,img.naturalHeight), c=document.createElement('canvas'), m=192;
-    c.width=m;c.height=m;
-    c.getContext('2d').drawImage(img,(img.naturalWidth-z)/2,(img.naturalHeight-z)/2,z,z,0,0,m,m);
-    var kw=.85, data=c.toDataURL('image/jpeg',kw);
-    while(data.length>40000&&kw>.4){kw-=.1;data=c.toDataURL('image/jpeg',kw);}
-    zetFoto(data);
-  };
+  img.onload=function(){snijFoto(img,url);};
   img.onerror=function(){URL.revokeObjectURL(url);toast('Deze foto kan ik niet openen.',true);};
   img.src=url;
+}
+function snijFoto(img,url){
+  if(document.getElementById('snij')){URL.revokeObjectURL(url);return;}
+  var V=280, w=img.naturalWidth, hh=img.naturalHeight, k0=V/Math.min(w,hh), zoom=1, k=k0;
+  var tx=(V-w*k)/2, ty=(V-hh*k)/2;
+  var el=document.createElement('div'); el.id='snij'; el.className='snij';
+  el.innerHTML='<div class="snijkaart"><h3>Schuif je foto goed</h3>'+
+    '<div class="snijvak"><img alt="" draggable="false"></div>'+
+    '<label class="snijzoom"><span>−</span><input type="range" min="1" max="4" step="0.01" value="1" aria-label="Zoom"><span>+</span></label>'+
+    '<div class="knoppen2"><button class="btn" data-snij="nee">Annuleren</button><button class="btn pri" data-snij="ja">Opslaan</button></div></div>';
+  document.body.appendChild(el);
+  var vak=el.querySelector('.snijvak'), beeld=el.querySelector('img'), schuif=el.querySelector('input');
+  beeld.src=url;
+  function klem(){
+    tx=Math.min(0,Math.max(V-w*k,tx)); ty=Math.min(0,Math.max(V-hh*k,ty));
+    beeld.style.transform='translate('+tx+'px,'+ty+'px) scale('+k+')';
+  }
+  function zoomNaar(z,cx,cy){
+    z=Math.max(1,Math.min(4,z)); cx=cx==null?V/2:cx; cy=cy==null?V/2:cy;
+    var px=(cx-tx)/k, py=(cy-ty)/k; zoom=z; k=k0*z; tx=cx-px*k; ty=cy-py*k; schuif.value=z; klem();
+  }
+  beeld.style.width=w+'px'; beeld.style.height=hh+'px'; klem();
+  // Slepen met één vinger, knijpen met twee.
+  var punten={}, start=null;
+  vak.addEventListener('pointerdown',function(e){vak.setPointerCapture(e.pointerId);punten[e.pointerId]={x:e.clientX,y:e.clientY};start=null;});
+  vak.addEventListener('pointermove',function(e){
+    var oud=punten[e.pointerId]; if(!oud)return;
+    var ids=Object.keys(punten);
+    if(ids.length===1){tx+=e.clientX-oud.x;ty+=e.clientY-oud.y;punten[e.pointerId]={x:e.clientX,y:e.clientY};klem();return;}
+    punten[e.pointerId]={x:e.clientX,y:e.clientY};
+    var a=punten[ids[0]], b=punten[ids[1]], d=Math.hypot(a.x-b.x,a.y-b.y), r=vak.getBoundingClientRect();
+    if(!start)start={d:d,z:zoom};
+    zoomNaar(start.z*d/start.d,(a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top);
+  });
+  function los(e){delete punten[e.pointerId];start=null;}
+  vak.addEventListener('pointerup',los); vak.addEventListener('pointercancel',los);
+  vak.addEventListener('wheel',function(e){e.preventDefault();var r=vak.getBoundingClientRect();zoomNaar(zoom*(e.deltaY<0?1.08:1/1.08),e.clientX-r.left,e.clientY-r.top);},{passive:false});
+  schuif.addEventListener('input',function(){zoomNaar(Number(schuif.value));});
+  function klaar(){URL.revokeObjectURL(url);el.remove();}
+  el.addEventListener('click',function(e){
+    var knop=e.target.closest('[data-snij]'); if(!knop)return;
+    if(knop.dataset.snij==='nee')return klaar();
+    var c=document.createElement('canvas'), m=192; c.width=m; c.height=m;
+    c.getContext('2d').drawImage(img,-tx/k,-ty/k,V/k,V/k,0,0,m,m);
+    var kw=.85, data=c.toDataURL('image/jpeg',kw);
+    while(data.length>40000&&kw>.4){kw-=.1;data=c.toDataURL('image/jpeg',kw);}
+    klaar(); zetFoto(data);
+  });
 }
 function zetFoto(data){
   setStatus('opslaan…','busy');
@@ -1523,7 +1603,7 @@ function vStand(){
   if(iemand&&order.length>=3){
     podium='<div class="podium">'+[order[1],order[0],order[2]].map(function(p,j){
       var trede=[2,1,3][j], s=sc[p];
-      return '<div class="trede t'+trede+(p===ME?' mine':'')+'">'+
+      return '<div class="trede t'+trede+(p===ME?' mine':'')+'" data-profiel="'+h(p)+'">'+
         '<div class="kroontje">'+(trede===1?IK.kroon:'')+'</div>'+avatar(p,'l')+
         '<div class="pnm">'+h(p)+bekerHtml(p)+'</div>'+
         '<div class="pbew">'+beweging(lr,p,plek[p])+rondeChip(lr,p)+'</div>'+
@@ -1532,7 +1612,7 @@ function vStand(){
   }
   var rest=(podium?order.slice(3):order).map(function(p){
     var s=sc[p], a=achter(p);
-    return '<div class="lrow'+(p===ME?' mine':'')+'"><div class="pos">'+plek[p]+'</div>'+
+    return '<div class="lrow'+(p===ME?' mine':'')+'" data-profiel="'+h(p)+'"><div class="pos">'+plek[p]+'</div>'+
       '<div class="lwie">'+avatar(p)+'<div style="min-width:0"><div class="pname">'+h(p)+(p===ME?' <span class="mini">jij</span>':'')+bekerHtml(p)+beweging(lr,p,plek[p])+'</div>'+
       '<div class="psub">'+(a||'HK '+s.hk.total+' · PK '+s.pk.total)+'</div></div></div>'+
       '<div class="pright">'+rondeChip(lr,p)+'<div class="ptot" data-tel="'+s.total+'">'+s.total+'</div></div></div>';
@@ -2359,11 +2439,16 @@ function aanvalBlok(ck){
 function vLive(){
   var laatst=['hk','pk'].map(function(ck){return S.comps[ck].live&&S.comps[ck].live.updated;})
     .filter(Boolean).sort().pop();
+  var gekeken=['hk','pk'].map(function(ck){return S.comps[ck].live&&S.comps[ck].live.gecontroleerd;})
+    .filter(Boolean).sort().pop();
+  // Gekeken is iets anders dan veranderd: zonder wedstrijden blijft de stand gewoon gelijk.
+  var wanneer=(gekeken&&gekeken>(laatst||'')?' Gecontroleerd: '+h(datumTekst(gekeken))+', niets nieuws sinds '+h(datumTekst(laatst||gekeken))+'.'
+    :(laatst?' Laatst bijgewerkt: '+h(datumTekst(laatst))+'.':''));
   var uitleg='';
   if(ADMIN&&S.autoAan){
     uitleg='<div class="card"><p class="hint" style="margin:0">De app werkt deze standen zelf bij, elke ochtend, rechtstreeks bij hockeystanden.nl. '+
       'Je hoeft hier niets te doen.'+
-      (laatst?' Laatst bijgewerkt: '+h(datumTekst(laatst))+'.':' Zodra er iets gespeeld is verschijnt het hier.')+'</p>'+
+      (laatst||gekeken?wanneer:' Zodra er iets gespeeld is verschijnt het hier.')+'</p>'+
       // Ook als het vanzelf gaat: zelf kunnen kijken wat er te halen valt, voor als het een keer niet klopt.
       '<button class="btn vol" data-adm="haalVoorstellen" style="margin-top:12px">Nu ophalen</button>'+
       (VOORSTEL?agendaBlok():'')+'</div>';
@@ -2413,6 +2498,75 @@ function vResult(){
           :'Alleen de beheerder ('+h(S.admin)+') vult dit in.')+'</p>'+
     resultBlock(compKeuze);
 }
+
+/* ================= profiel ================= */
+var profielVan=null;
+function openProfiel(p){
+  profielVan=p; tekenProfiel();
+  document.body.classList.add('profielopen');
+}
+function sluitProfiel(){
+  profielVan=null; document.body.classList.remove('profielopen');
+  var el=document.getElementById('profiel');
+  if(el){el.classList.remove('open');setTimeout(function(){if(!profielVan&&el.parentNode)el.remove();},220);}
+}
+function tekenProfiel(){
+  var p=profielVan; if(!p||!S||S.players.indexOf(p)<0)return sluitProfiel();
+  var el=document.getElementById('profiel'), nieuw=!el;
+  if(nieuw){
+    el=document.createElement('div');el.id='profiel';el.className='profiel';
+    el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');
+    document.body.appendChild(el);
+    el.addEventListener('click',function(e){
+      if(e.target===el||e.target.closest('[data-sluit]'))return sluitProfiel();
+      if(e.target.closest('[data-fotoweg]'))zetFoto('');
+    });
+    el.addEventListener('change',function(e){
+      if(e.target.id==='fotoKies'){kiesFoto(e.target.files&&e.target.files[0]);e.target.value='';return;}
+      var k=e.target.dataset.fav; if(!k)return;
+      var o={}; o[k]=e.target.value.trim(); zetProfiel(o);
+    });
+  }
+  var sc=scoreAll(), mijn=sc[p].total;
+  var plek=1+S.players.filter(function(q){return sc[q].total>mijn;}).length;
+  var gedeeld=S.players.filter(function(q){return q!==p&&sc[q].total===mijn;}).length>0;
+  var a=analyse()[p]||{n:0}, rondes=rondeWinnaars().telling[p]||0, bek=bekersVan(p);
+  var pr=(S.profielen&&S.profielen[p])||{}, ik=(p===ME), komma=function(n){return String(n).replace('.',',');};
+  var stats=[['Punten HK',sc[p].hk.total],['Punten PK',sc[p].pk.total],['Toto',a.n?a.toto+'%':'–'],
+    ['Raak',a.n?a.raak+'%':'–'],['Exact goed',a.exact||0],['Rondes gewonnen',rondes]];
+  function fav(k,label){
+    if(ik&&S.profielen)return '<label class="favrij"><span>'+label+'</span><input data-fav="'+k+'" maxlength="40" value="'+h(pr[k]||'')+'" placeholder="bijv. Thierry Brinkman" autocomplete="off"></label>';
+    return '<div class="favrij"><span>'+label+'</span><b>'+(pr[k]?h(pr[k]):'<i>nog niet ingevuld</i>')+'</b></div>';
+  }
+  var tips=['hk','pk'].map(function(ck){
+    var t=String(((S.comps[ck].preds[p]||{}).kampioen)||'').trim();
+    return t?'<span class="tip">'+teamLogo(t)+'<span><small>Kampioen '+ck.toUpperCase()+'</small>'+h(t)+'</span></span>':'';
+  }).join('');
+  el.innerHTML='<div class="pkaart" style="--k:'+spelerKleur(p)+'">'+
+    '<button class="ikoon psluit" data-sluit="1" aria-label="Sluiten"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>'+
+    '<div class="pkop">'+avatar(p,'xxl')+
+      '<h2>'+h(p)+(ik?' <span class="tag me">jij</span>':'')+'</h2>'+
+      '<div class="pplek"><b>'+plek+'e</b>'+(gedeeld?' (gedeeld)':'')+' · '+mijn+' punten'+(p===S.admin?' · beheerder':'')+'</div>'+
+      (bek.length?'<div class="pbekers">'+bek.map(function(b){return '<span>🏆 '+h(b.seizoen)+'</span>';}).join('')+'</div>':'')+
+      (ik&&S.fotos?'<div class="fotoknoppen"><label class="btn mini">'+(S.fotos[ME]?'Andere foto':'Profielfoto kiezen')+
+        '<input type="file" accept="image/*" id="fotoKies" hidden></label>'+(S.fotos[ME]?'<button class="btn mini link" data-fotoweg="1">Weghalen</button>':'')+'</div>':'')+
+    '</div>'+
+    '<div class="pstats">'+stats.map(function(x){return '<div><b>'+x[1]+'</b><span>'+x[0]+'</span></div>';}).join('')+'</div>'+
+    (S.profielen||!ik?'<div class="pfav"><h3>Favoriete speler</h3>'+fav('favHk','Hoofdklasse')+fav('favPk','Promotieklasse')+'</div>':'')+
+    (tips?'<div class="ptips">'+tips+'</div>':'')+
+  '</div>';
+  if(nieuw)requestAnimationFrame(function(){el.classList.add('open');});
+}
+function zetProfiel(o){
+  setStatus('opslaan…','busy');
+  google.script.run.withSuccessHandler(function(res){
+    if(!res||res.error)return toast((res&&res.error)||'Opslaan mislukt',true);
+    if(res.refused&&res.refused.length)return toast(res.refused[0],true);
+    S=res.state; setStatus('opgeslagen','ok'); render(); toast('Opgeslagen');
+  }).withFailureHandler(function(){setStatus('geen verbinding','err');toast('Opslaan mislukt, probeer het zo nog eens.',true);})
+    .applyPatches(ME,PIN,JSON.stringify([{profiel:o}]));
+}
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&profielVan)sluitProfiel();});
 
 /* ================= meer ================= */
 function vMeer(){
@@ -2669,6 +2823,11 @@ function onChange(e){
   if(a==='mactual'){setTimeout(function(){if(!sending&&!aanHetTypen())render();},900);return;}
 }
 function onClick(e){
+  // Op een speler tikken opent zijn profiel.
+  var pf=e.target.closest('[data-profiel]');
+  if(pf&&ME&&S&&S.players.indexOf(pf.dataset.profiel)>=0&&!e.target.closest('button,a,input,select,label')){
+    e.preventDefault(); openProfiel(pf.dataset.profiel); return;
+  }
   // competitie kiezen (ook vanuit een taak die naar één competitie wijst)
   var cp=e.target.closest('[data-comp]');
   if(cp){compKeuze=cp.dataset.comp;if(!cp.dataset.ga){render();return;}}
