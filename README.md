@@ -142,6 +142,14 @@ Tik op een speler (foto, naam of rij in de stand) voor zijn profiel: plek en pun
 exact, gewonnen rondes, bekers, kampioen-tips en zijn favoriete speler in de Hoofdklasse en Promotieklasse.
 Je favorieten vul je op je eigen profiel in (tik op je eigen foto, of op je foto bij Meer).
 
+### Terugblik op de speeldag
+
+Is er een speeldag gespeeld die je nog niet gezien hebt, dan opent de app eerst met een terugblik in vier schermen:
+de uitslagen (met jouw voorspelling en punten), de speeldagwinnaar(s), de nieuwe stand met stijgers en dalers, en de
+volgende ronde met een knop om te voorspellen. Tik rechts voor verder, links voor terug, × om over te slaan.
+Je ziet hem één keer per speeldag (onthouden op je telefoon). Terugkijken kan via **Terugkijken** op de
+Laatste speeldag-kaart in Stand.
+
 ## Testchecklist
 
 Iedereen moet in de geïnstalleerde app **opnieuw inloggen**. Een app op het beginscherm heeft zijn
