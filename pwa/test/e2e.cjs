@@ -312,12 +312,31 @@ async function toestel(browser, naam, device, metOffline) {
   // profielfoto: zetten, zichtbaar in de avatars, weghalen
   await page.click('#nav button[data-tab="info"]');
   await page.setInputFiles('#fotoKies', path.join(__dirname, '..', '..', 'docs', 'icons', 'clubs', 'voordaan.jpg'));
+  await page.waitForSelector('#snij');
+  check(await page.$$eval('#snij [data-snij]', (b) => b.every((x) => x.getBoundingClientRect().height >= 44)), 'foto bijsnijden: scherm met grote knoppen');
+  await page.click('[data-snij="ja"]');
   await page.waitForFunction(() => S.fotos && S.fotos.Tijn, null, { timeout: 15000 });
   const foto = await page.evaluate(() => ({ klein: S.fotos.Tijn.length < 45000, av: document.querySelectorAll('.av.foto').length }));
   check(foto.klein && foto.av >= 1, 'profielfoto: verkleind opgeslagen en zichtbaar in de avatar');
   await page.click('[data-fotoweg]');
   await page.waitForFunction(() => !S.fotos.Tijn, null, { timeout: 15000 });
   check(true, 'profielfoto weghalen werkt');
+  // profielkaart: op een speler tikken, eigen favorieten invullen, ander profiel alleen lezen
+  await page.click('#nav button[data-tab="stand"]');
+  await page.click('.trede.t1');
+  await page.waitForSelector('#profiel.open');
+  const prof = await page.evaluate(() => ({ stats: document.querySelectorAll('#profiel .pstats div').length, naam: document.querySelector('#profiel h2').textContent }));
+  check(prof.stats === 6, 'profielkaart: 6 statistieken (' + prof.naam + ')');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.getElementById('profiel'));
+  await page.evaluate(() => openProfiel(ME));
+  await page.waitForSelector('#profiel input[data-fav="favHk"]');
+  await page.fill('#profiel input[data-fav="favHk"]', 'Thierry Brinkman');
+  await page.press('#profiel input[data-fav="favHk"]', 'Tab');
+  await page.waitForFunction(() => S.profielen && S.profielen[ME] && S.profielen[ME].favHk === 'Thierry Brinkman', null, { timeout: 15000 });
+  check(true, 'profielkaart: favoriete speler opgeslagen');
+  await page.click('#profiel [data-sluit]');
+  await page.waitForFunction(() => !document.getElementById('profiel'));
   for (const t of ['stand', 'wvdw', 'pred', 'live', 'info', 'result']) {
     const te = await page.evaluate((t) => {
       tab = t; render();

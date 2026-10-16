@@ -7,7 +7,7 @@
  *   Opslaan gaat altijd rechtstreeks naar de server, nooit uit een cache.
  * VERSIE wordt gezet door pwa/build.cjs.
  */
-var VERSIE = 'b139095075';
+var VERSIE = 'e4e4c0699c';
 var SHELL_CACHE = 'hn-shell-v4-' + VERSIE; // v4: Inter en verfijnde uitstraling
 var API_CACHE = 'hn-api';
 var SHELL = [
