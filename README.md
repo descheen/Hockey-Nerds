@@ -150,6 +150,12 @@ volgende ronde met een knop om te voorspellen. Tik rechts voor verder, links voo
 Je ziet hem één keer per speeldag (onthouden op je telefoon). Terugkijken kan via **Terugkijken** op de
 Laatste speeldag-kaart in Stand.
 
+### Een video voor de groep
+
+Bovenaan de app-code (`pwa/src/app.html`) staat `BERICHT`: een TikTok-video die één speler voor de rest klaarzet.
+De anderen krijgen hem één keer te zien als ze de app openen, met een afspeelknop (telefoons spelen geluid alleen af na een tik).
+De video blijft op TikTok staan; de app toont de officiële TikTok-speler. Voor een nieuwe video: nieuwe `id`, nieuw TikTok-nummer.
+
 ## Testchecklist
 
 Iedereen moet in de geïnstalleerde app **opnieuw inloggen**. Een app op het beginscherm heeft zijn

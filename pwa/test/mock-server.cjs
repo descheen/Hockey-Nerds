@@ -68,7 +68,17 @@ const sandbox = {
   },
   HtmlService: {}
 };
+// De demodata hoort bij midden oktober 2026. De klok van de nagebootste server begint daar en loopt gewoon door,
+// zodat de tests niet verlopen als de echte datum voorbij die rondes is. MOCK_NU=echt gebruikt de echte tijd.
+if (process.env.MOCK_NU !== 'echt') {
+  const Echt = Date, verschil = new Echt(process.env.MOCK_NU || '2026-10-14T19:00:00+02:00').getTime() - Echt.now();
+  sandbox.Date = class extends Echt {
+    constructor(...a) { super(...(a.length ? a : [Echt.now() + verschil])); }
+    static now() { return Echt.now() + verschil; }
+  };
+}
 vm.createContext(sandbox);
+if (sandbox.Date) vm.runInContext('Date = this.Date', sandbox);
 for (const f of ['Code.gs', 'doPost-snippet.gs']) {
   vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), sandbox, { filename: f });
 }
