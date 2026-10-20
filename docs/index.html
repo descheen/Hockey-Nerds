@@ -2575,22 +2575,23 @@ function vResult(){
 
 /* ================= bericht van een speler ================= */
 /*
- * Een video die één speler voor de rest klaarzet. De anderen zien hem één keer, bij het openen.
+ * Een video die één speler voor de groep klaarzet. Iedereen (ook de afzender) ziet hem één keer, bij het openen.
  * De video blijft op TikTok staan; de app toont alleen de officiële TikTok-speler.
  * Een nieuw bericht: geef het een nieuwe id.
  */
 var BERICHT={id:'dansles-2026-10',van:'Rein',titel:'Rein heeft een video voor je',tiktok:'7689880074585263363'};
 function berichtSleutel(){return 'hn-bericht-'+BERICHT.id+'-'+ME;}
 function berichtNieuw(){
-  if(!BERICHT||!ME||ME===BERICHT.van||!S||S.players.indexOf(ME)<0)return false;
+  if(!BERICHT||!ME||!S||S.players.indexOf(ME)<0)return false;
   try{return !localStorage.getItem(berichtSleutel());}catch(e){return false;}
 }
 function toonBericht(daarna){
   try{localStorage.setItem(berichtSleutel(),'gezien');}catch(e){}
   var el=document.createElement('div'); el.id='bericht'; el.className='bericht';
-  el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label',BERICHT.titel);
+  var titel=ME===BERICHT.van?'Jouw video voor de groep':BERICHT.titel;
+  el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label',titel);
   el.innerHTML='<button class="ikoon rs-sluit" data-bericht="dicht" aria-label="Sluiten"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>'+
-    '<div class="bk-kop">'+avatar(BERICHT.van,'l')+'<h2>'+h(BERICHT.titel)+' 🎬</h2><p>Zet je geluid aan.</p></div>'+
+    '<div class="bk-kop">'+avatar(BERICHT.van,'l')+'<h2>'+h(titel)+' 🎬</h2><p>Zet je geluid aan.</p></div>'+
     '<div class="bk-scherm"><button class="bk-play" data-bericht="speel" aria-label="Afspelen"><svg viewBox="0 0 24 24" width="40" height="40" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span>Tik om af te spelen</span></button></div>'+
     '<button class="btn pri bk-verder" data-bericht="dicht">Verder naar de app</button>';
   document.body.appendChild(el); document.body.classList.add('profielopen');

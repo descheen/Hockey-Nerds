@@ -44,7 +44,10 @@ async function toestel(browser, naam, device, metOffline) {
   await page.click('#go');
   await page.waitForSelector('#nav button');
   check(true, 'inloggen werkt, app-shell staat');
-  // terugblik op de speeldag: na inloggen het openingsscherm, één keer per speeldag
+  // eerst de video voor de groep (ook bij de afzender), daarna de terugblik op de speeldag
+  await page.waitForSelector('#bericht');
+  check(/Jouw video/.test(await page.textContent('#bericht h2')), 'video: afzender ziet "Jouw video voor de groep"');
+  await page.click('#bericht .bk-verder');
   await page.waitForSelector('#recap');
   const rc = await page.evaluate(() => { const sl = document.querySelector('#recap .rs-slide.aan'); return { slides: document.querySelectorAll('#recap .rs-slide').length, uitslagen: document.querySelectorAll('#recap .rs-duel').length, past: sl.scrollHeight <= sl.clientHeight + 2 }; });
   check(rc.slides === 4 && rc.uitslagen >= 1 && rc.past, `terugblik: 4 schermen, ${rc.uitslagen} uitslag(en) van de speeldag, past op het scherm`);
