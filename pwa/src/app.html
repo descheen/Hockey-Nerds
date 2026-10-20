@@ -2491,7 +2491,7 @@ function berichtNieuw(){
   try{return !localStorage.getItem(berichtSleutel());}catch(e){return false;}
 }
 function toonBericht(daarna){
-  try{localStorage.setItem(berichtSleutel(),'gezien');}catch(e){}
+  if(document.getElementById('bericht'))return;
   var el=document.createElement('div'); el.id='bericht'; el.className='bericht';
   var titel=ME===BERICHT.van?'Jouw video voor de groep':BERICHT.titel;
   el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label',titel);
@@ -2510,6 +2510,8 @@ function toonBericht(daarna){
         'allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen title="Video"></iframe>';
       return;
     }
+    // Pas als je hem zelf sluit telt hij als gezien (niet als de app tussendoor ververst).
+    try{localStorage.setItem(berichtSleutel(),'gezien');}catch(e){}
     el.remove(); if(!profielVan)document.body.classList.remove('profielopen');
     if(daarna)daarna();
   });
@@ -2524,10 +2526,10 @@ function recapNieuw(){
   var gezien=''; try{gezien=localStorage.getItem(recapSleutel())||'';}catch(e){}
   return gezien!==lr.sleutel;
 }
-var recapStap=0;
+var recapStap=0, recapGezien='';
 function toonRecap(){
   var sc=scoreAll(), lr=laatsteRonde(sc); if(!lr)return;
-  try{localStorage.setItem(recapSleutel(),lr.sleutel);}catch(e){}
+  recapGezien=lr.sleutel;
   var order=S.players.slice().sort(function(a,b){return sc[b].total-sc[a].total;}), plek={};
   order.forEach(function(p,i){plek[p]=(i>0&&sc[p].total===sc[order[i-1]].total)?plek[order[i-1]]:i+1;});
   var ik=S.players.indexOf(ME)>=0, slides=[];
@@ -2602,6 +2604,7 @@ function recapNaar(i){
   el.querySelector('.rs-hint').style.visibility=i===n-1?'hidden':'';
 }
 function sluitRecap(){
+  if(recapGezien){try{localStorage.setItem(recapSleutel(),recapGezien);}catch(e){}}
   var el=document.getElementById('recap'); if(el)el.remove();
   if(!profielVan)document.body.classList.remove('profielopen');
 }
@@ -2690,7 +2693,8 @@ function vMeer(){
     '<input type="file" accept="image/*" id="fotoKies" hidden></label>'+
     (S.fotos&&S.fotos[ME]?'<button class="btn mini link" data-fotoweg="1">Weghalen</button>':'')+'</div>':'')+'</div></div>'+
     '<div class="knoppen2"><button class="btn" data-ververs="1">Verversen</button>'+
-    '<button class="btn danger" id="btnLogout">Uitloggen</button></div></div>';
+    '<button class="btn danger" id="btnLogout">Uitloggen</button></div>'+
+    (BERICHT?'<button class="btn vol" data-video="1" style="margin-top:8px">🎬 Video bekijken</button>':'')+'</div>';
   var seg='<div class="seg"><button data-ga="info" class="'+(tab==='info'?'on':'')+'">'+(ADMIN?'Info en beheer':'Info')+'</button>'+
     '<button data-ga="result" class="'+(tab==='result'?'on':'')+'">Werkelijke eindstand</button></div>';
   return paginaKop('Meer')+acc+seg+(tab==='result'?vResult():'<div class="regels">'+(ADMIN?klapKaarten(vInfo()):vInfo())+'</div>');
@@ -2948,6 +2952,7 @@ function onClick(e){
   if(e.target.closest('[data-ververs]')){refresh(false);return;}
   if(e.target.closest('[data-fotoweg]')){zetFoto('');return;}
   if(e.target.closest('[data-recap]')){toonRecap();return;}
+  if(e.target.closest('[data-video]')){toonBericht();return;}
   // sprong vanuit de actiebalk
   var ga=e.target.closest('[data-ga]');
   if(ga){tab=ga.dataset.ga;render();window.scrollTo(0,0);return;}

@@ -325,13 +325,15 @@ async function toestel(browser, naam, device, metOffline) {
   check(await page.evaluate(() => ME === 'Tijn' && ADMIN === false), 'inloggen als gewone speler (Tijn)');
   const bericht = await page.evaluate(() => {
     try { localStorage.removeItem(berichtSleutel()); } catch (e) {}
-    const nieuw = berichtNieuw(); toonBericht();
+    const nieuw = berichtNieuw(); toonBericht(); const nogNieuwTijdensKijken = berichtNieuw();
     const el = document.getElementById('bericht'); el.querySelector('[data-bericht="speel"]').click();
     const iframe = el.querySelector('iframe'); const src = iframe ? iframe.src : '';
     el.querySelector('.bk-verder').click();
-    return { nieuw, tiktok: /tiktok\.com\/player\/v1\/\d+/.test(src) && /muted=0/.test(src), weg: !document.getElementById('bericht'), daarna: berichtNieuw() };
+    return { nieuw: nieuw && nogNieuwTijdensKijken, tiktok: /tiktok\.com\/player\/v1\/\d+/.test(src) && /muted=0/.test(src), weg: !document.getElementById('bericht'), daarna: berichtNieuw() };
   });
-  check(bericht.nieuw && bericht.tiktok && bericht.weg && !bericht.daarna, 'video van Rein: getoond, speelt via TikTok met geluid, één keer');
+  check(bericht.nieuw && bericht.tiktok && bericht.weg && !bericht.daarna, 'video van Rein: getoond, telt pas als gezien na sluiten, speelt via TikTok met geluid');
+  const videoTerug = await page.evaluate(() => { tab = 'info'; render(); document.querySelector('[data-video]').click(); const open = !!document.getElementById('bericht'); document.querySelector('#bericht .bk-verder').click(); tab = 'stand'; render(); return open; });
+  check(videoTerug, 'video terugkijken via Meer');
   // profielfoto: zetten, zichtbaar in de avatars, weghalen
   await page.click('#nav button[data-tab="info"]');
   await page.setInputFiles('#fotoKies', path.join(__dirname, '..', '..', 'docs', 'icons', 'clubs', 'voordaan.jpg'));
