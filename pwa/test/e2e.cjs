@@ -24,6 +24,8 @@ async function geenHorizontaleScroll(page) {
 async function toestel(browser, naam, device, metOffline) {
   console.log(`\n== ${naam} ==`);
   const ctx = await browser.newContext({ ...device, serviceWorkers: 'allow' });
+  // De demodata hoort bij midden oktober 2026; zet de klok daar vast, anders verlopen de rondes in de test.
+  await ctx.clock.setFixedTime(new Date('2026-10-14T19:00:00+02:00'));
   const page = await ctx.newPage();
   const consoleFouten = [];
   // "Failed to load resource" komt van de nagebootste storing, die hoort erbij.
@@ -259,7 +261,7 @@ async function toestel(browser, naam, device, metOffline) {
   // 6. herladen: automatisch inloggen uit localStorage, SW actief
   await page.reload();
   await page.waitForSelector('#nav button');
-  await page.evaluate(() => { if (document.getElementById('recap')) sluitRecap(); });
+  await page.evaluate(() => { const b = document.getElementById('bericht'); if (b) b.querySelector('.bk-verder').click(); if (document.getElementById('recap')) sluitRecap(); });
   check(true, 'herladen logt automatisch in');
   const sw = await page.evaluate(async () => { const r = await navigator.serviceWorker.ready; return !!r.active && !!navigator.serviceWorker.controller; });
   check(sw, 'service worker actief en bestuurt de pagina');
@@ -300,7 +302,7 @@ async function toestel(browser, naam, device, metOffline) {
   await page.waitForFunction(() => document.getElementById('status').textContent === 'opgeslagen', null, { timeout: 8000 });
   await Promise.all([page.waitForNavigation(), page.click('#hn-update button')]);
   await page.waitForSelector('#nav button');
-  await page.evaluate(() => { if (document.getElementById('recap')) sluitRecap(); });
+  await page.evaluate(() => { const b = document.getElementById('bericht'); if (b) b.querySelector('.bk-verder').click(); if (document.getElementById('recap')) sluitRecap(); });
   check(!(await page.$('#hn-update')), 'na verversen: nieuwe versie geladen, balk weg');
 
   // 10. uitloggen wist de offline-kopie
@@ -316,8 +318,17 @@ async function toestel(browser, naam, device, metOffline) {
   await page.fill('#pin', '1234');
   await page.click('#go');
   await page.waitForSelector('#nav button');
-  await page.evaluate(() => { if (document.getElementById('recap')) sluitRecap(); });
+  await page.evaluate(() => { const b = document.getElementById('bericht'); if (b) b.querySelector('.bk-verder').click(); if (document.getElementById('recap')) sluitRecap(); });
   check(await page.evaluate(() => ME === 'Tijn' && ADMIN === false), 'inloggen als gewone speler (Tijn)');
+  const bericht = await page.evaluate(() => {
+    try { localStorage.removeItem(berichtSleutel()); } catch (e) {}
+    const nieuw = berichtNieuw(); toonBericht();
+    const el = document.getElementById('bericht'); el.querySelector('[data-bericht="speel"]').click();
+    const iframe = el.querySelector('iframe'); const src = iframe ? iframe.src : '';
+    el.querySelector('.bk-verder').click();
+    return { nieuw, tiktok: /tiktok\.com\/player\/v1\/\d+/.test(src) && /muted=0/.test(src), weg: !document.getElementById('bericht'), daarna: berichtNieuw() };
+  });
+  check(bericht.nieuw && bericht.tiktok && bericht.weg && !bericht.daarna, 'video van Rein: getoond, speelt via TikTok met geluid, één keer');
   // profielfoto: zetten, zichtbaar in de avatars, weghalen
   await page.click('#nav button[data-tab="info"]');
   await page.setInputFiles('#fotoKies', path.join(__dirname, '..', '..', 'docs', 'icons', 'clubs', 'voordaan.jpg'));

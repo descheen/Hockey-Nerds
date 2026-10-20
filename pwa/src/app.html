@@ -788,6 +788,17 @@ body.profielopen{overflow:hidden}
   .rs-winnaars .av-xxl{width:92px;height:92px;font-size:42px}
 }
 
+/* bericht met video */
+.bericht{position:fixed;inset:0;z-index:75;color:#fff;display:flex;flex-direction:column;align-items:center;gap:14px;
+  padding:calc(var(--top) + 22px) 20px calc(var(--onder) + 18px);
+  background:radial-gradient(120% 55% at 50% 0%,rgba(255,122,26,.3),transparent 60%),#0b0f19}
+.bk-kop{text-align:center}.bk-kop h2{margin:12px 0 2px;font-size:22px;font-weight:750;letter-spacing:-.02em}.bk-kop p{margin:0;color:rgba(255,255,255,.65);font-size:var(--t-s)}
+.bk-scherm{flex:1;min-height:0;width:100%;max-width:340px;border-radius:20px;overflow:hidden;background:#000;display:flex;align-items:center;justify-content:center;box-shadow:0 20px 50px -20px rgba(0,0,0,.8)}
+.bk-scherm iframe{width:100%;height:100%;border:0;display:block}
+.bk-play{display:flex;flex-direction:column;align-items:center;gap:12px;background:none;border:0;color:#fff;font:inherit;font-weight:650;cursor:pointer;width:100%;height:100%;justify-content:center}
+.bk-play svg{width:84px;height:84px;padding:20px;border-radius:50%;background:var(--acc);color:var(--on-acc);box-shadow:0 10px 30px rgba(255,122,26,.5)}
+.bk-verder{width:100%;max-width:340px;min-height:52px}
+
 @media(prefers-reduced-motion:reduce){
   *,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
@@ -1136,7 +1147,9 @@ function start(r){
   try{PIN=JSON.parse(localStorage.getItem('hn-login')).pin;}catch(e){}
   shell(); render();
   // Nieuwe speeldag sinds je laatste bezoek? Dan eerst de terugblik.
-  if(recapNieuw())toonRecap();
+  // Eerst een bericht van een van de spelers (video), daarna de terugblik op de speeldag.
+  if(berichtNieuw())toonBericht(function(){if(recapNieuw())toonRecap();});
+  else if(recapNieuw())toonRecap();
   // Na het inloggen bovenaan beginnen, niet waar het pincodeveld stond.
   if(document.activeElement)document.activeElement.blur(); window.scrollTo(0,0);
   clearInterval(pollTimer); pollTimer=setInterval(function(){refresh(true);},25000);
@@ -2463,6 +2476,42 @@ function vResult(){
     (ADMIN?'Jij bent beheerder, dus jij vult dit in. Zodra hier iets staat, verrekenen alle ranglijst- en bonuspunten zich automatisch.'
           :'Alleen de beheerder ('+h(S.admin)+') vult dit in.')+'</p>'+
     resultBlock(compKeuze);
+}
+
+/* ================= bericht van een speler ================= */
+/*
+ * Een video die één speler voor de rest klaarzet. De anderen zien hem één keer, bij het openen.
+ * De video blijft op TikTok staan; de app toont alleen de officiële TikTok-speler.
+ * Een nieuw bericht: geef het een nieuwe id.
+ */
+var BERICHT={id:'dansles-2026-10',van:'Rein',titel:'Rein heeft een video voor je',tiktok:'7689880074585263363'};
+function berichtSleutel(){return 'hn-bericht-'+BERICHT.id+'-'+ME;}
+function berichtNieuw(){
+  if(!BERICHT||!ME||ME===BERICHT.van||!S||S.players.indexOf(ME)<0)return false;
+  try{return !localStorage.getItem(berichtSleutel());}catch(e){return false;}
+}
+function toonBericht(daarna){
+  try{localStorage.setItem(berichtSleutel(),'gezien');}catch(e){}
+  var el=document.createElement('div'); el.id='bericht'; el.className='bericht';
+  el.setAttribute('role','dialog'); el.setAttribute('aria-modal','true'); el.setAttribute('aria-label',BERICHT.titel);
+  el.innerHTML='<button class="ikoon rs-sluit" data-bericht="dicht" aria-label="Sluiten"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>'+
+    '<div class="bk-kop">'+avatar(BERICHT.van,'l')+'<h2>'+h(BERICHT.titel)+' 🎬</h2><p>Zet je geluid aan.</p></div>'+
+    '<div class="bk-scherm"><button class="bk-play" data-bericht="speel" aria-label="Afspelen"><svg viewBox="0 0 24 24" width="40" height="40" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span>Tik om af te spelen</span></button></div>'+
+    '<button class="btn pri bk-verder" data-bericht="dicht">Verder naar de app</button>';
+  document.body.appendChild(el); document.body.classList.add('profielopen');
+  el.addEventListener('click',function(e){
+    var k=e.target.closest('[data-bericht]'); if(!k)return;
+    if(k.dataset.bericht==='speel'){
+      // De tik zelf geeft toestemming voor geluid; de speler start meteen met geluid.
+      var vak=el.querySelector('.bk-scherm');
+      vak.innerHTML='<iframe src="https://www.tiktok.com/player/v1/'+encodeURIComponent(BERICHT.tiktok)+
+        '?autoplay=1&muted=0&loop=0&controls=1&progress_bar=1&play_button=1&volume_control=1&fullscreen_button=1&music_info=0&description=0&rel=0" '+
+        'allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen title="Video"></iframe>';
+      return;
+    }
+    el.remove(); if(!profielVan)document.body.classList.remove('profielopen');
+    if(daarna)daarna();
+  });
 }
 
 /* ================= terugblik op de speeldag ================= */

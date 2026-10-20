@@ -18,6 +18,8 @@ const TOESTELLEN = [['iphone13', devices['iPhone 13']], ['iphonese', devices['iP
   const browser = await chromium.launch();
   for (const [naam, device] of TOESTELLEN) {
     const ctx = await browser.newContext({ ...device, serviceWorkers: 'block', reducedMotion: 'reduce' });
+    // De demodata hoort bij midden oktober 2026; zet de klok daar vast, anders verlopen de rondes in de test.
+    await ctx.clock.setFixedTime(new Date('2026-10-14T19:00:00+02:00'));
     const page = await ctx.newPage();
     await page.goto('http://localhost:8787/');
     await page.waitForSelector('#pick button');
@@ -26,7 +28,7 @@ const TOESTELLEN = [['iphone13', devices['iPhone 13']], ['iphonese', devices['iP
     await page.fill('#pin', '1234');
     await page.click('#go');
     await page.waitForSelector('#nav button');
-    await page.evaluate(() => { if (document.getElementById('recap')) sluitRecap(); });
+    await page.evaluate(() => { const b = document.getElementById('bericht'); if (b) b.querySelector('.bk-verder').click(); if (document.getElementById('recap')) sluitRecap(); });
     let n = 1;
     for (const [tab, label] of SCHERMEN) {
       await page.evaluate((t) => { tab = t; render(); window.scrollTo(0, 0); }, tab);
