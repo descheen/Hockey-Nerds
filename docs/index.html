@@ -2580,7 +2580,8 @@ function vResult(){
  * Een nieuw bericht: geef het een nieuwe id.
  */
 var BERICHT={id:'dansles-2026-10',van:'Rein',titel:'Rein heeft een video voor je',tiktok:'7689880074585263363'};
-function berichtSleutel(){return 'hn-bericht-'+BERICHT.id+'-'+ME;}
+// De afzender zag hem door een fout al als 'gezien'; met '-2' krijgt alleen hij hem nog een keer.
+function berichtSleutel(){return 'hn-bericht-'+BERICHT.id+'-'+ME+(ME===BERICHT.van?'-2':'');}
 function berichtNieuw(){
   if(!BERICHT||!ME||!S||S.players.indexOf(ME)<0)return false;
   try{return !localStorage.getItem(berichtSleutel());}catch(e){return false;}
