@@ -23,11 +23,14 @@ var WACHT_UUR = 2.5;
 var BRON = {
   hk: {
     pagina: 'https://hockeystanden.nl/standen/staatsloterij-hoofdklasse-heren',
-    feed: 'https://ics.maak-agenda.nl/v2/league/hoofdklasse-heren.ics'
+    feed: 'https://ics.maak-agenda.nl/v2/league/hoofdklasse-heren.ics',
+    // Topscorers komen van hockey.nl (de KNHB). Elk seizoen heeft een eigen adres.
+    topscorers: 'https://www.hockey.nl/topscorers-staatsloterij-hoofdklasse-heren-2026-2027'
   },
   pk: {
     pagina: 'https://hockeystanden.nl/standen/promotieklasse-heren',
-    feed: ''
+    feed: '',
+    topscorers: ''
   }
 };
 
@@ -833,6 +836,9 @@ function adminAction(who, pin, action, arg) {
           return c && oc.teams.indexOf(c.team) >= 0 && [c.gespeeld, c.voor, c.tegen].every(function (n) { return typeof n === 'number' && n >= 0 && n < 1000; });
         }).map(function (c) { return { team: c.team, gespeeld: c.gespeeld, voor: c.voor, tegen: c.tegen, punten: typeof c.punten === 'number' ? c.punten : null }; });
         if (cf.length === 12) oc.live.cijfers = cf;
+        // Topscorers: alleen overnemen als er echt een lijst is. Een lege lijst wist niets.
+        var ts = schoonTopscorers_(blok.topscorers);
+        if (ts.length) { oc.live.topscorers = ts; oc.live.topscorersBijgewerkt = new Date().toISOString(); }
       });
     }
     // --- herinnering ---
@@ -1183,6 +1189,61 @@ function cijfersVan_(lijst, teams) {
   return uit.length === 12 ? uit : [];
 }
 
+/**
+ * Topscorerslijst van hockey.nl. Kolommen: speler, club, velddoelpunten (VD),
+ * strafcorners (SC), strafballen (SB), doelpunten totaal.
+ * We lezen elke tabelrij van achteren af (de vier cijfers, dan club en speler), zodat
+ * een extra kolom vooraan, zoals een positienummer, niets uitmaakt. Een rij tellen we
+ * alleen mee als VD + SC + SB precies het totaal is; anders is de tabel veranderd.
+ * Geeft de lijst terug van de meeste naar de minste doelpunten.
+ */
+function leesTopscorersPagina_(html) {
+  var uit = [];
+  String(html || '').split(/<tr[\s>]/i).slice(1).forEach(function (rij) {
+    rij = rij.split(/<\/tr>/i)[0];
+    var cellen = [], re = /<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi, m;
+    while ((m = re.exec(rij))) {
+      cellen.push(ontHtml_(m[1].replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim());
+    }
+    var n = cellen.length;
+    if (n < 6) return;
+    var cijfers = cellen.slice(n - 4).map(function (c) { return /^\d{1,3}$/.test(c) ? Number(c) : -1; });
+    if (cijfers.some(function (c) { return c < 0; })) return;
+    var naam = cellen[n - 6], club = cellen[n - 5];
+    if (!naam || !club || cijfers[0] + cijfers[1] + cijfers[2] !== cijfers[3]) return;
+    uit.push({ naam: naam, club: club, vd: cijfers[0], sc: cijfers[1], sb: cijfers[2], goals: cijfers[3] });
+  });
+  // sort is niet stabiel in alle versies: de oorspronkelijke volgorde breekt de gelijke standen
+  return uit.map(function (t, i) { t.i = i; return t; })
+    .sort(function (a, b) { return (b.goals - a.goals) || (a.i - b.i); })
+    .map(function (t) { delete t.i; return t; });
+}
+
+/** De eerste tien van de lijst, met onze clubnamen waar we ze herkennen. Gedeelde koppositie blijft compleet. */
+function topscorersVan_(lijst, teams) {
+  var top = (lijst || []).slice(0, 10);
+  if (top.length) {
+    var kop = top[0].goals;
+    (lijst || []).slice(10).forEach(function (t) { if (t.goals === kop) top.push(t); });
+  }
+  return top.map(function (t) {
+    return { naam: t.naam, club: teamVan_(t.club, teams) || t.club, vd: t.vd, sc: t.sc, sb: t.sb, goals: t.goals };
+  });
+}
+
+/** Haalt de topscorers van één competitie op. Geeft { lijst, fout } terug, nooit een uitzondering. */
+function haalTopscorers_(ck, c) {
+  var adres = BRON[ck] && BRON[ck].topscorers;
+  if (!adres) return { lijst: [], fout: '' };
+  var res;
+  try { res = UrlFetchApp.fetch(adres, { muteHttpExceptions: true, followRedirects: true }); }
+  catch (e) { return { lijst: [], fout: 'hockey.nl niet bereikbaar (' + ((e && e.message) || e) + ')' }; }
+  if (res.getResponseCode() !== 200) return { lijst: [], fout: 'hockey.nl antwoordde met ' + res.getResponseCode() + ' bij de topscorers' };
+  var lijst = leesTopscorersPagina_(res.getContentText());
+  if (!lijst.length) return { lijst: [], fout: 'topscorers ' + c.name + ' niet herkend (geen tabel gevonden, is de pagina omgebouwd?)' };
+  return { lijst: topscorersVan_(lijst, c.teams), fout: '' };
+}
+
 function haalPagina_(ck) {
   var adres = BRON[ck] && BRON[ck].pagina;
   if (!adres) return { stand: [], wedstrijden: [], fouten: [], cijfers: [] };
@@ -1264,7 +1325,22 @@ function haalBronnen_(ck, c) {
   }
   var op = voegSamen_(naarTeams_(feed, c.teams), naarTeams_(pagina.wedstrijden, c.teams),
     naarTeams_(tt ? tt.wedstrijden : [], c.teams));
-  return { stand: stand.lijst, standBron: bron, op: op, meldingen: meldingen, cijfers: cijfersVan_(pagina.cijfers, c.teams) };
+  // Topscorers zijn een extraatje: gaat het mis, dan is dat een melding en geen reden om de rest te laten vallen.
+  var top = { lijst: [], fout: '' };
+  try { top = haalTopscorers_(ck, c); } catch (e) { top = { lijst: [], fout: 'topscorers ' + c.name + ': ' + ((e && e.message) || e) }; }
+  if (top.fout) meldingen.push(top.fout);
+  return { stand: stand.lijst, standBron: bron, op: op, meldingen: meldingen, cijfers: cijfersVan_(pagina.cijfers, c.teams), topscorers: top.lijst };
+}
+
+/** Schoont topscorers op voor het bewaren: alleen echte namen en getallen, hoogstens vijftien. */
+function schoonTopscorers_(lijst) {
+  return (Array.isArray(lijst) ? lijst : []).filter(function (t) {
+    return t && typeof t.naam === 'string' && t.naam.trim() && t.naam.length < 80 &&
+      typeof t.goals === 'number' && t.goals >= 0 && t.goals < 200;
+  }).slice(0, 15).map(function (t) {
+    var g = function (n) { return (typeof n === 'number' && n >= 0 && n < 200) ? n : 0; };
+    return { naam: t.naam.trim(), club: String(t.club || '').slice(0, 40), vd: g(t.vd), sc: g(t.sc), sb: g(t.sb), goals: t.goals };
+  });
 }
 
 /** Voegt bronnen samen. Een wedstrijd mét uitslag wint van dezelfde zonder. */
@@ -1313,7 +1389,8 @@ function haalVoorstellen(who, pin) {
       uitslagen: uitslagen,
       // Alleen een ranglijst die volledig herkend wordt is bruikbaar.
       ranglijst: bron.stand,
-      cijfers: bron.cijfers
+      cijfers: bron.cijfers,
+      topscorers: bron.topscorers
     });
   });
 
@@ -1484,6 +1561,13 @@ function autoBijwerken_(s) {
     if (bron.cijfers.length === 12 && JSON.stringify(bron.cijfers) !== JSON.stringify(c.live.cijfers || [])) {
       c.live.cijfers = bron.cijfers;
       gedaan.push('doelpunten ' + c.name + ' bijgewerkt');
+    }
+    // Topscorers: bijwerken zodra de top veranderd is. Een mislukte of lege lijst laat de oude staan.
+    var nieuweTop = schoonTopscorers_(bron.topscorers);
+    if (nieuweTop.length && JSON.stringify(nieuweTop) !== JSON.stringify(c.live.topscorers || [])) {
+      c.live.topscorers = nieuweTop;
+      c.live.topscorersBijgewerkt = nu.toISOString();
+      gedaan.push('topscorers ' + c.name + ' bijgewerkt');
     }
   });
 
