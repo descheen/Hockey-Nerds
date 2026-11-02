@@ -1872,6 +1872,17 @@ function doelpuntLeiders(ck,soort){
   var gespeeld=Math.max.apply(null,cf.map(function(c){return c.gespeeld||0;}));
   return {teams:teams,aantal:beste,gespeeld:gespeeld};
 }
+/**
+ * Wie leidt de topscorerslijst? Uit de lijst die de app bij hockey.nl ophaalt.
+ * Bij een gedeelde eerste plek alle spelers met evenveel doelpunten.
+ */
+function topscorerLeiders(ck){
+  var t=(S.comps[ck].live&&S.comps[ck].live.topscorers)||[];
+  if(!t.length)return null;
+  var beste=Math.max.apply(null,t.map(function(x){return x.goals;}));
+  var koppen=t.filter(function(x){return x.goals===beste;});
+  return {namen:koppen.map(function(x){return x.naam;}),clubs:koppen.map(function(x){return x.club;}),aantal:beste};
+}
 /** Wat zou elke bonusvraag nu opleveren als het hierbij bleef? */
 function bonusProjectie(ck){
   var c=S.comps[ck], L=(c.live&&c.live.standing)||[], kop=String(L[0]||'').trim();
@@ -1883,14 +1894,20 @@ function bonusProjectie(ck){
      note:ck==='hk'?'koploper nu, de play-offs beslissen':'koploper nu, en dat is meteen de kampioen'},
     {k:'winter', label:'Winterkampioen', pt:S.pts.winter,
      vast:String(c.result.winter||'').trim(), voorlopig:basisKop, note:'koploper nu'},
-    {k:'topscorer', label:'Topscorer', pt:S.pts.topscorer,
-     vast:String(c.result.topscorer||'').trim(), voorlopig:'', note:'vul ik in aan het eind'},
+    topscorerVraag(ck),
     doelpuntVraag(ck,'minsteTegen','Minste tegengoals',S.pts.minsteTegen,'tegen'),
     doelpuntVraag(ck,'meestScorend','Meest scorend',S.pts.meestScorend,'voor')
   ];
   if(ck==='hk')lijst.push({k:'speler', label:'Speler van het seizoen', pt:S.pts.speler,
     vast:String(c.result.speler||'').trim(), voorlopig:'', note:'vul ik in aan het eind'});
   return lijst;
+}
+function topscorerVraag(ck){
+  var c=S.comps[ck], l=topscorerLeiders(ck);
+  return {k:'topscorer',label:'Topscorer',pt:S.pts.topscorer,vast:String(c.result.topscorer||'').trim(),
+    voorlopig:l?l.namen.join(' / '):'', kandidaten:l?l.namen:null,
+    note:l?l.aantal+' doelpunten'+(l.namen.length>1?' (gedeeld)':l.clubs[0]?' voor '+l.clubs[0]:'')
+      :(ck==='hk'?(ADMIN?'topscorers nog niet opgehaald, tik bij Competitie op Nu ophalen':'zodra de topscorers binnen zijn'):'vul ik in aan het eind')};
 }
 function doelpuntVraag(ck,k,label,pt,soort){
   var c=S.comps[ck], l=doelpuntLeiders(ck,soort);
@@ -1907,7 +1924,9 @@ function bonusProjectieBlok(){
       // Bij gelijke stand op doelpunten tellen alle koplopers.
       var kandidaten=(!v.vast&&v.kandidaten)?v.kandidaten:(antw?[antw]:[]);
       var wie=antw?S.players.filter(function(p){
-        var pr=c.preds[p]||blankPred(); return kandidaten.some(function(t){return eq(pr[v.k],t);});
+        // Een topscorer typt iedereen anders ("Walker", "Struan W."), dus daar kijken we naar de achternaam.
+        var gelijk=v.k==='topscorer'?naamEq:eq;
+        var pr=c.preds[p]||blankPred(); return kandidaten.some(function(t){return gelijk(pr[v.k],t);});
       }):[];
       var mijn=String((c.preds[ME]||blankPred())[v.k]||'').trim();
       var ik=wie.indexOf(ME)>=0;
@@ -1953,10 +1972,13 @@ function projectie(){
       if(String(c.result.winter||'').trim()) o.bonus+=eq(pr.winter,c.result.winter)?S.pts.winter:0;
       else if(kop) o.bonus+=eq(pr.winter,kop)?S.pts.winter:0;
       ['topscorer','minsteTegen','meestScorend'].forEach(function(k){
-        if(String(c.result[k]||'').trim()){ o.bonus+=eq(pr[k],c.result[k])?S.pts[k]:0; return; }
-        // Nog geen eindstand: tel mee wie er nu leidt op doelpunten.
-        var l=k==='minsteTegen'?doelpuntLeiders(ck,'tegen'):k==='meestScorend'?doelpuntLeiders(ck,'voor'):null;
-        if(l&&l.teams.some(function(t){return eq(pr[k],t);})) o.bonus+=S.pts[k];
+        var gelijk=k==='topscorer'?naamEq:eq;
+        if(String(c.result[k]||'').trim()){ o.bonus+=gelijk(pr[k],c.result[k])?S.pts[k]:0; return; }
+        // Nog geen eindstand: tel mee wie er nu leidt (op doelpunten, of in de topscorerslijst).
+        var kopLijst=null;
+        if(k==='topscorer'){var tl=topscorerLeiders(ck); kopLijst=tl&&tl.namen;}
+        else{var l=k==='minsteTegen'?doelpuntLeiders(ck,'tegen'):doelpuntLeiders(ck,'voor'); kopLijst=l&&l.teams;}
+        if(kopLijst&&kopLijst.some(function(t){return gelijk(pr[k],t);})) o.bonus+=S.pts[k];
       });
       if(ck==='hk'&&String(c.result.speler||'').trim()) o.bonus+=eq(pr.speler,c.result.speler)?S.pts.speler:0;
     });
@@ -2825,7 +2847,7 @@ function agendaBlok(){
   if(v.bezig)return '<p class="hint">Bezig met ophalen, dit duurt een paar tellen…</p>';
   var iets=false;
   var blokken=(v.blokken||[]).map(function(b,bi){
-    if(b.uitslagen.length||b.ranglijst.length)iets=true;
+    if(b.uitslagen.length||b.ranglijst.length||(b.topscorers||[]).length)iets=true;
     var u=b.uitslagen.length
       ? '<div class="beurtvolgorde">'+b.uitslagen.map(function(x,i){
           return '<div class="beurtrij" style="grid-template-columns:auto 1fr auto">'+
@@ -2840,8 +2862,18 @@ function agendaBlok(){
           return '<div class="rangrij'+(i===0?' kop':'')+'"><span class="nr">'+(i+1)+'</span><span>'+h(t)+'</span></div>';
         }).join('')+'</div>'
       : '<p class="hint">Nog geen ranglijst gevonden.</p>';
+    // Topscorers van hockey.nl, alleen voor de competitie waar we een pagina van hebben.
+    var ts=b.topscorers||[];
+    var t=ts.length
+      ? '<label class="row" style="margin:8px 0"><input type="checkbox" class="vk-t" data-b="'+bi+'" checked> '+
+        '<span class="mini">deze topscorers overnemen</span></label>'+
+        '<div class="rang">'+ts.slice(0,5).map(function(x,i){
+          return '<div class="rangrij'+(i===0?' kop':'')+'"><span class="nr">'+x.goals+'</span><span>'+h(x.naam)+
+            ' <small>'+h(x.club)+' · '+x.vd+' veld, '+x.sc+' corner'+(x.sb?', '+x.sb+' stroke':'')+'</small></span></div>';
+        }).join('')+'</div>'
+      : '';
     return '<h3>'+h(b.naam)+'</h3><p class="hint">'+b.gespeeld+' van '+b.gevonden+
-      ' gevonden wedstrijden zijn gespeeld.</p>'+u+r;
+      ' gevonden wedstrijden zijn gespeeld.</p>'+u+r+t;
   }).join('');
   return blokken+
     (v.waarschuwing?'<p class="hint warn">'+h(v.waarschuwing)+'</p>':'')+
@@ -3101,7 +3133,11 @@ function onClick(e){
       if(VOORSTEL.blokken[b]){blokken[b].ranglijst=VOORSTEL.blokken[b].ranglijst.slice();
         blokken[b].cijfers=(VOORSTEL.blokken[b].cijfers||[]).slice();}
     });
-    var totaal=blokken.reduce(function(n,b){return n+b.uitslagen.length+b.ranglijst.length;},0);
+    [].slice.call(document.querySelectorAll('.vk-t:checked')).forEach(function(c){
+      var b=Number(c.dataset.b);
+      if(VOORSTEL.blokken[b])blokken[b].topscorers=(VOORSTEL.blokken[b].topscorers||[]).slice();
+    });
+    var totaal=blokken.reduce(function(n,b){return n+b.uitslagen.length+b.ranglijst.length+(b.topscorers||[]).length;},0);
     if(!totaal)return toast('Er staat niets aangevinkt',true);
     arg={blokken:blokken};
     VOORSTEL=null;

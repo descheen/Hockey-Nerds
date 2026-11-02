@@ -30,6 +30,19 @@ const PAGINA = {
   // Hoofdklasse zonder JSON-LD: dan moet de tabel het doen
   hk: `<html><body><table><tbody>${strow(HK_STAND)}</tbody></table><ul class="ml">${item('final', 'Tilburg', 'Kampong', 2, 2)}${item('live', 'HDM', 'Bloemendaal', 1, 4)}</ul></body></html>`
 };
+// Topscorers van hockey.nl. De echte opmaak van de tabel kennen we niet tot op het attribuut, dus de
+// lezer moet tegen een gewone <table> kunnen, met of zonder positiekolom en met vervuiling in de cellen.
+const TOP_RIJEN = [
+  ['Struan Walker', 'Oranje-Rood', 5, 4, 0, 9], ['Timo Boers', 'Den Bosch', 0, 6, 2, 8],
+  ['Mustapha Cassiem', 'Amsterdam', 4, 2, 1, 7], ['Fabian Verzuu', 'HDM', 7, 0, 0, 7],
+  ['Duco Telgenkamp', 'Amsterdam', 4, 1, 0, 5], ['Boris Burkhardt', 'Amsterdam', 2, 2, 1, 5],
+  ['Thierry Brinkman', 'Den Bosch', 4, 1, 0, 5], ['Jip Janssen', 'Kampong', 0, 4, 1, 5],
+  ['Joep Troost', 'Pinok&eacute;', 4, 1, 0, 5], ['Casper van der Veen', 'Bloemendaal', 4, 0, 0, 4],
+  ['Sam Lane', 'Klein Zwitserland', 2, 2, 0, 4], ['Jaïr van der Horst', 'Oranje-Rood', 3, 0, 0, 3]
+];
+const topTabel = (rijen, { positie = false, vervuild = false } = {}) => `<table class="topscorers"><thead><tr>${positie ? '<th>#</th>' : ''}<th>SPELER</th><th>CLUB</th><th>VD</th><th>SC</th><th>SB</th><th>GOALS</th></tr></thead><tbody>` +
+  rijen.map((r, i) => `<tr>${positie ? `<td>${i + 1}</td>` : ''}<td>${vervuild ? `<a href="/speler/${i}"><span>${r[0]}</span></a>` : r[0]}</td><td>${vervuild ? `<span class="club">${r[1]}</span>` : r[1]}</td><td>${r[2]}</td><td>${r[3]}</td><td>${r[4]}</td><td>${vervuild ? `<b>${r[5]}</b>` : r[5]}</td></tr>`).join('') + '</tbody></table>';
+const TOP_PAGINA = `<html><body><nav><table><tr><td>Menu</td><td>Nieuws</td></tr></table></nav>${topTabel(TOP_RIJEN)}</body></html>`;
 const TT630 = `                      NOS Teletekst 630 \n    OCKEY                           1/2 \n       Staatsloterij hoofdklasse heren  \n\n Zondag,15.00 uur:                      \n\n HDM               - Bloemendaal      2-3\n Schaerweijde      - Amsterdam         -\n Pinok&eacute;            - Den Bosch        1-1\n\n Stand:                                 \n Amsterdam       3-9 HDM             3-4\n Bloemendaal     3-7 SCHC            3-4\n Den Bosch       3-7 Pinok&eacute;          3-2\n Kl.Zwit'land    3-5 Rotterdam       3-0\n Kampong         2-4 Tilburg         3-0\n Oranje-Rood     2-4 Schaerweijde    3-0\n\n weer     nieuws     sport     voetbal  \n`;
 
 /* ---------- Code.gs laden met een nagebootst internet ---------- */
@@ -54,6 +67,7 @@ const sandbox = {
     if (/teletekst/.test(u)) return u.endsWith('/630') ? antwoord(200, JSON.stringify({ content: TT630, nextSubPage: '630-2' })) : antwoord(404, '');
     if (/ics/.test(u)) return antwoord(404, '');
     if (internet === 'nieuwe-opmaak') return antwoord(200, '<html><body><div class="iets-anders">Hurley</div></body></html>');
+    if (/hockey\.nl/.test(u)) return internet === 'top-weg' ? antwoord(503, '') : antwoord(200, TOP_PAGINA);
     if (/promotieklasse/.test(u)) return antwoord(200, PAGINA.pk);
     if (/hoofdklasse/.test(u)) return antwoord(200, PAGINA.hk);
     return antwoord(404, '');
@@ -106,6 +120,37 @@ check(ttStand.lijst[0] === 'Amsterdam' && ttStand.lijst[6] === 'HDM' && ttStand.
 check(tt.wedstrijden.length === 2, `2 uitslagen, de wedstrijd zonder uitslag niet (${tt.wedstrijden.length})`);
 check(tt.wedstrijden[0].uitslag === '2-3', 'HDM - Bloemendaal 2-3');
 
+console.log('\n== topscorers (hockey.nl) ==');
+const lees = (html) => G(`leesTopscorersPagina_(${JSON.stringify(html)})`);
+const top = lees(TOP_PAGINA);
+check(top.length === 12, `alle 12 rijen gelezen, de menutabel eromheen niet (${top.length})`);
+check(top[0].naam === 'Struan Walker' && top[0].club === 'Oranje-Rood' && top[0].vd === 5 && top[0].sc === 4 && top[0].sb === 0 && top[0].goals === 9,
+  'Struan Walker: Oranje-Rood, 5 veld + 4 corner + 0 stroke = 9');
+check(top[1].naam === 'Timo Boers' && top[1].sb === 2, 'Timo Boers: 2 strafballen');
+check(top[8].club === 'Pinoke' || top[8].club === 'Pinoké' || /^Pinok/.test(top[8].club), 'Pinok&eacute; wordt als tekst gelezen: ' + top[8].club);
+check(top[11].naam === 'Jaïr van der Horst', 'trema in de naam blijft heel');
+check(lees(topTabel(TOP_RIJEN, { positie: true })).length === 12 && lees(topTabel(TOP_RIJEN, { positie: true }))[0].naam === 'Struan Walker',
+  'met extra positiekolom vooraan werkt het ook');
+check(lees(topTabel(TOP_RIJEN, { vervuild: true }))[0].naam === 'Struan Walker' && lees(topTabel(TOP_RIJEN, { vervuild: true }))[0].goals === 9,
+  'links, spans en vet in de cellen worden weggehaald');
+const scheef = TOP_RIJEN.map((r) => r.slice()); scheef[2][5] = 99;
+check(lees(topTabel(scheef)).length === 11, 'rij waarvan VD+SC+SB niet het totaal is wordt overgeslagen');
+const onGesorteerd = [TOP_RIJEN[3], TOP_RIJEN[0], TOP_RIJEN[1]];
+check(lees(topTabel(onGesorteerd)).map((t) => t.goals).join() === '9,8,7', 'op doelpunten gesorteerd, ook als de pagina dat niet is');
+check(lees('<html><div class="iets-anders">Struan Walker 9</div></html>').length === 0, 'andere opmaak zonder tabel geeft een lege lijst, geen fout');
+const bron = G(`haalTopscorers_('hk', defaults_().comps.hk)`);
+check(bron.lijst.length === 10 && bron.fout === '', 'ophalen: de top tien van de 12 rijen, geen fout');
+check(bron.lijst[0].club === 'Oranje-Rood' && bron.lijst[8].club === 'Pinoké', 'clubs krijgen onze teamnamen (Pinoké met accent)');
+check(G(`haalTopscorers_('pk', defaults_().comps.pk)`).lijst.length === 0 && G(`haalTopscorers_('pk', defaults_().comps.pk)`).fout === '',
+  'Promotieklasse heeft geen topscorerpagina: leeg en geen foutmelding');
+const veel = Array.from({ length: 14 }, (_, i) => ['Speler ' + i, 'Kampong', 1, 0, 0, 1]);
+const veelTop = G(`topscorersVan_(${JSON.stringify(lees(topTabel([['Alleen Kop', 'HDM', 3, 0, 0, 3]].concat(veel))))}, HK_TEAMS)`);
+check(veelTop.length === 10, 'hoogstens tien, als de koppositie niet gedeeld is (' + veelTop.length + ')');
+const gedeeld = Array.from({ length: 13 }, (_, i) => ['Kopman ' + i, 'Kampong', 2, 0, 0, 2]);
+check(G(`topscorersVan_(${JSON.stringify(lees(topTabel(gedeeld)))}, HK_TEAMS)`).length === 13, 'allemaal gedeeld eerste: iedereen blijft erin, ook boven de tien');
+check(G(`schoonTopscorers_([{naam:'  ', goals: 3}, {naam:'Echt', goals: -1}, {naam:'Goed', club:'HDM', vd:1, sc:1, sb:0, goals:2}, null, {goals:5}])`).length === 1,
+  'onzin wordt eruit gefilterd voor het bewaren');
+
 console.log('\n== alles samen (haalBronnen_) ==');
 G(`var _s = defaults_();`);
 const pkBron = G(`haalBronnen_('pk', _s.comps.pk)`);
@@ -137,6 +182,10 @@ check(G(`_a.comps.pk.live.standing[0]`) === 'Hurley', 'ranglijst Promotieklasse 
 check(G(`_a.comps.hk.live.standing[3]`) === 'Klein Zwitserland', 'ranglijst Hoofdklasse bijgewerkt');
 check(G(`_a.autoFout`) === '', 'geen foutmelding als alles lukt');
 check(G(`_a.comps.pk.live.cijfers.length`) === 12 && G(`_a.comps.pk.live.cijfers[0].tegen`) === 5, 'doelpunten bewaard voor de bonusvragen');
+check(G(`_a.comps.hk.live.topscorers.length`) === 10 && G(`_a.comps.hk.live.topscorers[0].naam`) === 'Struan Walker' && G(`_a.comps.hk.live.topscorers[0].goals`) === 9,
+  'topscorers Hoofdklasse bewaard (Struan Walker, 9)');
+check(!G(`_a.comps.pk.live.topscorers`), 'Promotieklasse heeft geen topscorers en krijgt ook niets');
+check(/topscorers Staatsloterij Hoofdklasse bijgewerkt/.test(G(`_a.autoBericht`)) || /topscorers/.test(G(`_a.autoBericht`)), 'de melding vermeldt dat de topscorers zijn bijgewerkt');
 
 // Een ochtend zonder wedstrijden: niets veranderd, maar wel gecontroleerd.
 const oudBijgewerkt = G(`_a.comps.pk.live.updated`);
@@ -160,6 +209,19 @@ check(!over.error && over.state.comps.pk.live.cijfers.length === 12, 'Overnemen 
 const raar = G(`adminAction('Rein','1','neemOver',${JSON.stringify({ blokken: [{ comp: 'pk', cijfers: [{ team: 'Bestaat niet', gespeeld: 1, voor: 1, tegen: 1 }] }] })})`);
 check(raar.state.comps.pk.live.cijfers.length === 12, 'onzin-cijfers worden genegeerd');
 check(G(`publicState_(readState_(), 'Tijn').autoFout`) === '', 'foutmelding alleen zichtbaar voor de beheerder');
+check(goed.blokken[0].topscorers.length === 10 && goed.blokken[1].topscorers.length === 0, 'Nu ophalen: topscorers voor de Hoofdklasse, geen voor de Promotieklasse');
+const overHk = G(`adminAction('Rein','1','neemOver',${JSON.stringify({ blokken: [{ comp: 'hk', uitslagen: [], ranglijst: [], topscorers: goed.blokken[0].topscorers }] })})`);
+check(!overHk.error && overHk.state.comps.hk.live.topscorers[0].naam === 'Struan Walker' && !!overHk.state.comps.hk.live.topscorersBijgewerkt, 'Overnemen bewaart de topscorers met het tijdstip');
+const overLeeg = G(`adminAction('Rein','1','neemOver',${JSON.stringify({ blokken: [{ comp: 'hk', uitslagen: [], ranglijst: [], topscorers: [] }] })})`);
+check(overLeeg.state.comps.hk.live.topscorers.length === 10, 'een lege lijst wist de bewaarde topscorers niet');
+const overRaar = G(`adminAction('Rein','1','neemOver',${JSON.stringify({ blokken: [{ comp: 'hk', topscorers: [{ naam: '', goals: 3 }, 'rommel', { naam: 'X', goals: 'veel' }] }] })})`);
+check(overRaar.state.comps.hk.live.topscorers.length === 10, 'onzin-topscorers worden genegeerd');
+internet = 'top-weg';
+G(`var _c = defaults_(); _c.autoAan = true; _c.autoFout = '';`);
+opTijd('2026-10-13T09:10:00+02:00', `autoBijwerken_(_c)`);
+check(/hockey\.nl antwoordde met 503/.test(G(`_c.autoFout`)), 'hockey.nl valt weg: duidelijke melding ("' + G(`_c.autoFout`).slice(0, 90) + '")');
+check(G(`_c.comps.hk.live.standing[0]`) === 'Amsterdam', 'en de ranglijst wordt gewoon bijgewerkt: de topscorers houden de rest niet tegen');
+internet = 'werkt';
 
 console.log(fouten ? `\n${fouten} FOUT(EN)` : '\nAlles groen.');
 process.exit(fouten ? 1 : 0);
